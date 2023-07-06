@@ -37,8 +37,8 @@ import io.github.oblarg.oblog.annotations.Log;
 
 public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public static enum State {
-        FIELD_RELATIVE(null), ROBOT_RELATIVE(null), ALIGN(FIELD_RELATIVE), ZERO(
-                FIELD_RELATIVE), BALANCE(FIELD_RELATIVE), XF(FIELD_RELATIVE);
+        FIELD_RELATIVE(null), ROBOT_RELATIVE(null), ALIGN(FIELD_RELATIVE), BALANCE(
+                FIELD_RELATIVE), XF(FIELD_RELATIVE);
 
         public final State parent;
 
@@ -82,7 +82,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
 
-
     @Log.ToString
     public SpeedSetting speedSetting = SpeedSetting.FAST;
 
@@ -95,14 +94,9 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             LOC_FR = new Translation2d(SIZE, SIZE), LOC_BL = new Translation2d(-SIZE, -SIZE),
             LOC_BR = new Translation2d(-SIZE, SIZE);
 
-    // This is the kinematics object that calculates the desired wheel speeds
     private final SwerveDriveKinematics kinematics;
-    // PoseEstimator is a more advanced odometry system that uses a Kalman
-    // filter to estimate the robot's position It also encorporates other
-    // measures like April tag positions
     private final SwerveDrivePoseEstimator poseEstimator;
 
-    // @Log.Field2d(name = "Robot Field")
     public final Field2d fieldMap = new Field2d();
 
     private final TorqueSwerveModule2022 fl, fr, bl, br;
@@ -126,11 +120,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     private final AutoLevelController autoLevelController = new AutoLevelController(this::getPose);
 
-    public boolean updateWithTags = true;
 
-    /**
-     * Constructor called on initialization.
-     */
     private Drivebase() {
         teleopOmegaController.enableContinuousInput(-Math.PI, Math.PI);
         lastRotationRadians = gyro.getRotation2d().getRadians();
@@ -143,9 +133,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
         fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, 0, config);
-        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 0, config); // maybe + PI //
-                                                                                 // old =
-                                                                                 // 0.875901259481907
+        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 0, config);
         bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, 0, config);
         br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, 0, config);
 
@@ -203,7 +191,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             isRotationLocked = true;
             state = State.FIELD_RELATIVE;
         });
-        updateWithTags = true;
 
     }
 
@@ -223,9 +210,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         updateFeedback();
         requestedState = state;
 
-        if (state == State.ZERO) {
-            zeroModules();
-        } else if (state == State.XF) {
+        if (state == State.XF) {
             xFactor();
         } else {
             if (state == State.ALIGN) {
@@ -246,8 +231,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                 convertToFieldRelative();
             }
 
-            if (state != State.ROBOT_RELATIVE) {
-            }
 
             swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
 
@@ -318,12 +301,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                 : Field.reflectPosition(poseEstimator.getEstimatedPosition()));
     }
 
-    private void zeroModules() {
-        fl.zero();
-        fr.zero();
-        bl.zero();
-        br.zero();
-    }
 
     private void preseveModulePositions() {
         fl.setDesiredState(new SwerveModuleState(0, swerveStates[0].angle));
