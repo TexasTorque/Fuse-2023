@@ -30,7 +30,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
         private final TorqueBoolSupplier xFactorToggle, resetGyroClick, wantsIntake, wantsOuttake,
                         gamePieceModeToggle, slowMode, armToHome, wristLeft, wristRight, wristUp,
-                        arcArm;
+                        arcArm, scoreHigh, scoreMid;
 
 
 
@@ -56,6 +56,9 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
 
                 armToHome = new TorqueClickSupplier(operator::isAButtonPressed);
+                scoreHigh = new TorqueClickSupplier(operator::isYButtonPressed);
+                scoreMid = new TorqueClickSupplier(operator::isBButtonPressed);
+
                 // make these clicks!!
                 wristLeft = new TorqueBoolSupplier(operator::isDPADLeftDown);
                 wristRight = new TorqueBoolSupplier(operator::isDPADRightDown);
@@ -80,6 +83,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
                                 () -> hand.setGamePieceMode(GamePiece.CUBE));
 
                 wantsIntake.onTrueOrFalse(() -> {
+                        arm.setState(Arm.State.OMNI_INTAKE);
                         hand.runIntake(TorqueDirection.FORWARD);
                 }, () -> {
                         hand.runIntake(TorqueDirection.NEUTRAL);
@@ -92,12 +96,15 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
                 });
 
                 armToHome.onTrue(() -> arm.setState(Arm.State.HOME));
+                scoreHigh.onTrue(() -> arm.setState(Arm.State.SCORE_HIGH));
+                scoreMid.onTrue(() -> arm.setState(Arm.State.SCORE_MID));
+                // arcArm.onTrue(() -> arm.setState(Arm.State.ARC));
+                // arc the arm over from front to back
 
                 wristLeft.onTrue(() -> hand.setState(Hand.State.LEFT));
                 wristRight.onTrue(() -> hand.setState(Hand.State.RIGHT));
                 wristUp.onTrue(() -> hand.setState(Hand.State.UP));
-                // rotateArm.onTrue(() -> hand.setWristAngle(Hand.WristAngle.ROTATE));
-                // arc the arm over from front to back
+
         }
 
 

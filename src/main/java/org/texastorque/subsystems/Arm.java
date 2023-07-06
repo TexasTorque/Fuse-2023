@@ -41,9 +41,9 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         HOME(new ArmPose(0, new Rotation2d(0))), 
         INTAKE_FRONT(new ArmPose(0, new Rotation2d(0))),
         INTAKE_BACK(new ArmPose(0, new Rotation2d(0))),
+        OMNI_INTAKE(new ArmPose(0, new Rotation2d(0))), // Goes to intake front or back depending on current state  
         SCORE_HIGH(new ArmPose(0, new Rotation2d(0))),
-        SCORE_MID(new ArmPose(0, new Rotation2d(0))),
-        SCORE_LOW(new ArmPose(0, new Rotation2d(0)));
+        SCORE_MID(new ArmPose(0, new Rotation2d(0)));
         // @formatter:on
 
         public final ArmPose cubePose;
