@@ -2,6 +2,7 @@ package org.texastorque.subsystems;
 
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
+import org.texastorque.torquelib.base.TorqueDirection;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.motors.TorqueNEO;
@@ -57,7 +58,7 @@ public class Hand extends TorqueSubsystem implements Subsystems {
 
     private GamePiece mode;
     private State desiredState, activeState;
-    private boolean runIntake;
+    private TorqueDirection intakeDirection;
 
     private final TorqueNEO wrist, intake;
     private final TorqueCANCoder wristEncoder;
@@ -68,7 +69,7 @@ public class Hand extends TorqueSubsystem implements Subsystems {
         mode = GamePiece.CUBE;
 
         desiredState = State.UP;
-        runIntake = false;
+        intakeDirection = TorqueDirection.NEUTRAL;
 
         wrist = new TorqueNEO(Ports.WRIST);
         intake = new TorqueNEO(Ports.INTAKE);
@@ -105,12 +106,13 @@ public class Hand extends TorqueSubsystem implements Subsystems {
         return mode == GamePiece.CONE;
     }
 
-    public boolean runningIntake() {
-        return runIntake;
+
+    public void runIntake(TorqueDirection direction) {
+        intakeDirection = direction;
     }
 
-    public void setIntake(boolean runIntake) {
-        this.runIntake = runIntake;
+    public void setState(State state) {
+        desiredState = state;
     }
 
 
@@ -122,9 +124,8 @@ public class Hand extends TorqueSubsystem implements Subsystems {
         activeState = desiredState;
          
         wrist.setVolts(wristPoseController.calculate(wristEncoder.getAbsolutePosition(), activeState.get().wristPose));
-        intake.setVolts(runIntake ? activeState.get().intakeSpeed : 0);
-
-        if (mode.isTeleop()) runIntake = false;
+        intake.setVolts(intakeDirection.get());
+        
     }
 
     public static final synchronized Hand getInstance() {

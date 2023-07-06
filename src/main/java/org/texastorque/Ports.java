@@ -18,4 +18,8 @@ public final class Ports {
     public static final int WRIST = 13;
     public static final int INTAKE = 14;
     public static final int WRIST_ENCODER = 15;
+    public static final int TELESCOPE = 0;
+    public static final int ROTARY = 1;
+    public static final int ROTARY_ENCODER = 16;
+
 }
