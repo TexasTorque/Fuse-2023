@@ -33,12 +33,12 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import io.github.oblarg.oblog.annotations.Log;
 
 public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public static enum State {
         FIELD_RELATIVE(null), ROBOT_RELATIVE(null), ALIGN(FIELD_RELATIVE), BALANCE(
-                FIELD_RELATIVE), XF(FIELD_RELATIVE);
+                FIELD_RELATIVE),
+        XF(FIELD_RELATIVE);
 
         public final State parent;
 
@@ -63,8 +63,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     private static volatile Drivebase instance;
 
-    public static final double WIDTH = Units.inchesToMeters(21.745), // m (swerve to swerve)
-            LENGTH = Units.inchesToMeters(21.745), // m (swerve to swerve)
+    public static final double WIDTH = Units.inchesToMeters(18), // m (swerve to swerve)
+            LENGTH = Units.inchesToMeters(21), // m (swerve to swerve)
 
             MAX_VELOCITY = 4.522, // m/s
             MAX_ACCELERATION = 8.958, // m/s^2
@@ -74,25 +74,21 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(0));
 
-    private static final double SIZE = Units.inchesToMeters(18);
-
-
     public static SwerveModulePosition invertSwerveModuleDistance(final SwerveModulePosition pose) {
         return new SwerveModulePosition(-pose.distanceMeters, pose.angle);
     }
 
-
-    @Log.ToString
+    // @Log.ToString
     public SpeedSetting speedSetting = SpeedSetting.FAST;
 
-    @Log.ToString
+    // @Log.ToString
     private State state = State.ROBOT_RELATIVE;
 
     private State requestedState = State.ROBOT_RELATIVE;
 
-    private final Translation2d LOC_FL = new Translation2d(SIZE, -SIZE),
-            LOC_FR = new Translation2d(SIZE, SIZE), LOC_BL = new Translation2d(-SIZE, -SIZE),
-            LOC_BR = new Translation2d(-SIZE, SIZE);
+    private final Translation2d LOC_FL = new Translation2d(LENGTH / 2, -WIDTH / 2),
+            LOC_FR = new Translation2d(LENGTH / 2, WIDTH / 2), LOC_BL = new Translation2d(-LENGTH / 2, -WIDTH / 2),
+            LOC_BR = new Translation2d(-LENGTH / 2, WIDTH / 2);
 
     private final SwerveDriveKinematics kinematics;
     private final SwerveDrivePoseEstimator poseEstimator;
@@ -108,18 +104,16 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     private SwerveModuleState[] swerveStates;
 
-    @Log.ToString(name = "Chassis Speeds")
+    // @Log.ToString(name = "Chassis Speeds")
     public TorqueSwerveSpeeds inputSpeeds = new TorqueSwerveSpeeds(0, 0, 0);
 
     public double requestedRotation = 0;
 
     public boolean isRotationLocked = true;
 
-    public final PathAlignController alignmentController =
-            new PathAlignController(this::getPose, () -> inputSpeeds);
+    public final PathAlignController alignmentController = new PathAlignController(this::getPose, () -> inputSpeeds);
 
     private final AutoLevelController autoLevelController = new AutoLevelController(this::getPose);
-
 
     private Drivebase() {
         teleopOmegaController.enableContinuousInput(-Math.PI, Math.PI);
@@ -132,10 +126,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
-        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, 0, config);
-        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 0, config);
-        bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, 0, config);
-        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, 0, config);
+        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, -1.35758295307, config);
+        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 2.018714636564255, config);
+        bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, -0.618193008, config);
+        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, -3.0188807887994, config);
 
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
 
@@ -195,10 +189,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     public SwerveModulePosition[] getModulePositions() {
-        return new SwerveModulePosition[] {invertSwerveModuleDistance(fl.getPosition()),
+        return new SwerveModulePosition[] { invertSwerveModuleDistance(fl.getPosition()),
                 invertSwerveModuleDistance(fr.getPosition()),
                 invertSwerveModuleDistance(bl.getPosition()),
-                invertSwerveModuleDistance(br.getPosition())};
+                invertSwerveModuleDistance(br.getPosition()) };
     }
 
     public void convertToFieldRelative() {
@@ -230,7 +224,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                 calculateTeleop();
                 convertToFieldRelative();
             }
-
 
             swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
 
@@ -274,13 +267,13 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         gyro.setOffsetCW(Rotation2d.fromRadians(0));
     }
 
-    @Log.ToString(name = "Robot Pose")
+    // @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
         updateFeedback();
         return poseEstimator.getEstimatedPosition();
     }
 
-    @Log.Dial(name = "Gyro Radians")
+    // @Log.Dial(name = "Gyro Radians")
     public double getGyroAngle() {
         return gyro.getHeadingCCW().getRadians();
     }
@@ -301,7 +294,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                 : Field.reflectPosition(poseEstimator.getEstimatedPosition()));
     }
 
-
     private void preseveModulePositions() {
         fl.setDesiredState(new SwerveModuleState(0, swerveStates[0].angle));
         fr.setDesiredState(new SwerveModuleState(0, swerveStates[1].angle));
@@ -321,19 +313,18 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
         if (isRotationLocked && !inputSpeeds.hasRotationalVelocity()
                 && inputSpeeds.hasTranslationalVelocity()) {
-            final double omega =
-                    teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
+            final double omega = teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
             inputSpeeds.omegaRadiansPerSecond = omega;
         } else
             lastRotationRadians = realRotationRadians;
     }
 
-    @Log.ToString(name = "Robot Pose X")
+    // @Log.ToString(name = "Robot Pose X")
     private double logPoseX() {
         return getPose().getTranslation().getX();
     }
 
-    @Log.ToString(name = "Robot Pose Y")
+    // @Log.ToString(name = "Robot Pose Y")
     private double logPoseY() {
         return getPose().getTranslation().getY();
     }
