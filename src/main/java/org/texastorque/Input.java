@@ -7,10 +7,10 @@
 package org.texastorque;
 
 import org.texastorque.subsystems.Drivebase;
-import org.texastorque.subsystems.Hand;
-import org.texastorque.subsystems.Arm;
+// import org.texastorque.subsystems.Hand;
+// import org.texastorque.subsystems.Arm;
 import org.texastorque.subsystems.Drivebase.SpeedSetting;
-import org.texastorque.subsystems.Hand.GamePiece;
+// import org.texastorque.subsystems.Hand.GamePiece;
 import org.texastorque.torquelib.base.TorqueDirection;
 import org.texastorque.torquelib.base.TorqueInput;
 import org.texastorque.torquelib.control.TorqueBoolSupplier;
@@ -79,31 +79,31 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
                 xFactorToggle.onTrue(() -> drivebase.setState(Drivebase.State.XF));
 
-                gamePieceModeToggle.onTrueOrFalse(() -> hand.setGamePieceMode(GamePiece.CONE),
-                                () -> hand.setGamePieceMode(GamePiece.CUBE));
+                // gamePieceModeToggle.onTrueOrFalse(() -> hand.setGamePieceMode(GamePiece.CONE),
+                //                 () -> hand.setGamePieceMode(GamePiece.CUBE));
 
-                wantsIntake.onTrueOrFalse(() -> {
-                        arm.setState(Arm.State.OMNI_INTAKE);
-                        hand.runIntake(TorqueDirection.FORWARD);
-                }, () -> {
-                        hand.runIntake(TorqueDirection.NEUTRAL);
-                });
+                // wantsIntake.onTrueOrFalse(() -> {
+                //         arm.setState(Arm.State.OMNI_INTAKE);
+                //         hand.runIntake(TorqueDirection.FORWARD);
+                // }, () -> {
+                //         hand.runIntake(TorqueDirection.NEUTRAL);
+                // });
 
-                wantsOuttake.onTrueOrFalse(() -> {
-                        hand.runIntake(TorqueDirection.REVERSE);
-                }, () -> {
-                        hand.runIntake(TorqueDirection.NEUTRAL);
-                });
+                // wantsOuttake.onTrueOrFalse(() -> {
+                //         hand.runIntake(TorqueDirection.REVERSE);
+                // }, () -> {
+                //         hand.runIntake(TorqueDirection.NEUTRAL);
+                // });
 
-                armToHome.onTrue(() -> arm.setState(Arm.State.HOME));
-                scoreHigh.onTrue(() -> arm.setState(Arm.State.SCORE_HIGH));
-                scoreMid.onTrue(() -> arm.setState(Arm.State.SCORE_MID));
+                // armToHome.onTrue(() -> arm.setState(Arm.State.HOME));
+                // scoreHigh.onTrue(() -> arm.setState(Arm.State.SCORE_HIGH));
+                // scoreMid.onTrue(() -> arm.setState(Arm.State.SCORE_MID));
                 // arcArm.onTrue(() -> arm.setState(Arm.State.ARC));
                 // arc the arm over from front to back
 
-                wristLeft.onTrue(() -> hand.setState(Hand.State.LEFT));
-                wristRight.onTrue(() -> hand.setState(Hand.State.RIGHT));
-                wristUp.onTrue(() -> hand.setState(Hand.State.UP));
+                // wristLeft.onTrue(() -> hand.setState(Hand.State.LEFT));
+                // wristRight.onTrue(() -> hand.setState(Hand.State.RIGHT));
+                // wristUp.onTrue(() -> hand.setState(Hand.State.UP));
 
         }
 
