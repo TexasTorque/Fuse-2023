@@ -14,6 +14,8 @@ import org.texastorque.controllers.AutoLevelController;
 import org.texastorque.controllers.PathAlignController;
 import org.texastorque.controllers.PathAlignController.AlignState;
 import org.texastorque.controllers.PathAlignController.GridState;
+import org.texastorque.toast.lib.Toast;
+import org.texastorque.toast.lib.pipelines.AprilTagPipeline;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.auto.commands.TorqueContinuous;
 import org.texastorque.torquelib.base.TorqueMode;
@@ -26,6 +28,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -33,6 +36,7 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public static enum State {
@@ -77,10 +81,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         return new SwerveModulePosition(-pose.distanceMeters, pose.angle);
     }
 
-    // @Log.ToString
     public SpeedSetting speedSetting = SpeedSetting.FAST;
 
-    // @Log.ToString
     private State state = State.ROBOT_RELATIVE;
 
     private State requestedState = State.ROBOT_RELATIVE;
@@ -91,7 +93,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             LOC_BR = new Translation2d(-LENGTH / 2, WIDTH / 2);
 
     private final SwerveDriveKinematics kinematics;
-    private final SwerveDrivePoseEstimator poseEstimator;
 
     public final Field2d fieldMap = new Field2d();
 
@@ -104,17 +105,13 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     private SwerveModuleState[] swerveStates;
 
-    // @Log.ToString(name = "Chassis Speeds")
     public TorqueSwerveSpeeds inputSpeeds = new TorqueSwerveSpeeds(0, 0, 0);
 
     public double requestedRotation = 0;
 
     public boolean isRotationLocked = true;
 
-    public final PathAlignController alignmentController =
-            new PathAlignController(this::getPose, () -> inputSpeeds);
-
-    private final AutoLevelController autoLevelController = new AutoLevelController(this::getPose);
+    private final Toast toast;
 
     private Drivebase() {
         teleopOmegaController.enableContinuousInput(-Math.PI, Math.PI);
@@ -134,12 +131,15 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
 
-        poseEstimator = new SwerveDrivePoseEstimator(kinematics, gyro.getHeadingCCW(),
-                getModulePositions(), INITIAL_POS);
-
         swerveStates = new SwerveModuleState[4];
         for (int i = 0; i < swerveStates.length; i++)
             swerveStates[i] = new SwerveModuleState();
+
+        toast = new Toast(Field.getCurrentFieldLayout(),
+                new SwerveDrivePoseEstimator(kinematics, gyro.getHeadingCCW(), getModulePositions(), INITIAL_POS));
+
+        toast.setPipeline("local0", new AprilTagPipeline(new Transform3d()));
+        // toast.setPipeline("local2", new AprilTagPipeline(new Transform3d()));
     }
 
     public SpeedSetting getSpeedSetting() {
@@ -156,23 +156,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     public boolean isState(final State state) {
         return getState() == state;
-    }
-
-    public void setAlignState(final AlignState alignment) {
-        state = alignment == AlignState.NONE ? state.parent : State.ALIGN;
-        alignmentController.setAlignment(alignment);
-    }
-
-    public void setGridOverride(final GridState override) {
-        alignmentController.setGridOverride(override);
-    }
-
-    public final boolean isPathAlignDone() {
-        return alignmentController.isDone();
-    }
-
-    public final boolean isAutoLevelDone() {
-        return autoLevelController.isDone();
     }
 
     @Override
@@ -204,23 +187,9 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public final void update(final TorqueMode mode) {
         updateFeedback();
         requestedState = state;
-
         if (state == State.XF) {
             xFactor();
         } else {
-            if (state == State.ALIGN) {
-                final Optional<TorqueSwerveSpeeds> speedsWrapper = alignmentController.calculate();
-                if (speedsWrapper.isPresent())
-                    inputSpeeds = speedsWrapper.get();
-
-            } else if (state == State.BALANCE) {
-                inputSpeeds = autoLevelController.calculate();
-                convertToFieldRelative();
-
-            } else if (mode.isTeleop() && state != State.ALIGN) {
-                inputSpeeds = inputSpeeds.times(speedSetting.speed);
-            }
-
             if (state == State.FIELD_RELATIVE) {
                 calculateTeleop();
                 convertToFieldRelative();
@@ -234,22 +203,18 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                 preseveModulePositions();
             } else {
                 final boolean useSmartMode = mode.isAuto() || state == State.ALIGN;
-                fl.setDesiredState(swerveStates[0], useSmartMode);
-                fr.setDesiredState(swerveStates[1], useSmartMode);
-                bl.setDesiredState(swerveStates[2], useSmartMode);
-                br.setDesiredState(swerveStates[3], useSmartMode);
+                // fl.setDesiredState(swerveStates[0], useSmartMode);
+                // fr.setDesiredState(swerveStates[1], useSmartMode);
+                // bl.setDesiredState(swerveStates[2], useSmartMode);
+                // br.setDesiredState(swerveStates[3], useSmartMode);
             }
         }
-
-        alignmentController.resetIf(state != State.ALIGN);
-        autoLevelController.resetIf(state != State.BALANCE);
-
         state = state.parent;
     }
 
     public void resetPose(final Pose2d pose) {
         gyro.setOffsetCW(pose.getRotation());
-        poseEstimator.resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
+        toast.estimator.resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
     }
 
     public void resetPose(final Rotation2d rotation) {
@@ -268,13 +233,11 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         gyro.setOffsetCW(Rotation2d.fromRadians(0));
     }
 
-    // @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
         updateFeedback();
-        return poseEstimator.getEstimatedPosition();
+        return toast.estimator.getEstimatedPosition();
     }
 
-    // @Log.Dial(name = "Gyro Radians")
     public double getGyroAngle() {
         return gyro.getHeadingCCW().getRadians();
     }
@@ -288,11 +251,14 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     private void updateFeedback() {
-        poseEstimator.update(gyro.getHeadingCCW(), getModulePositions());
+        toast.update();
 
+        toast.estimator.update(gyro.getHeadingCCW(), getModulePositions());
         fieldMap.setRobotPose(DriverStation.getAlliance() == DriverStation.Alliance.Blue
-                ? poseEstimator.getEstimatedPosition()
-                : Field.reflectPosition(poseEstimator.getEstimatedPosition()));
+                ? toast.estimator.getEstimatedPosition()
+                : Field.reflectPosition(toast.estimator.getEstimatedPosition()));
+
+        SmartDashboard.putString("ROBOT POSE", toast.estimator.getEstimatedPosition().toString());
     }
 
     private void preseveModulePositions() {
@@ -319,16 +285,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             inputSpeeds.omegaRadiansPerSecond = omega;
         } else
             lastRotationRadians = realRotationRadians;
-    }
-
-    // @Log.ToString(name = "Robot Pose X")
-    private double logPoseX() {
-        return getPose().getTranslation().getX();
-    }
-
-    // @Log.ToString(name = "Robot Pose Y")
-    private double logPoseY() {
-        return getPose().getTranslation().getY();
     }
 
     public static synchronized final Drivebase getInstance() {
