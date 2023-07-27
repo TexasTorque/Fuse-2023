@@ -1,5 +1,3 @@
-# TorqueTemplate
+# Fuse-2023
 
-Robot code template. Updated for 2023.
-
-TorqueVendordeps and TorqueLib are submodules.
+Codebase for Fuse, Texas Torque's offseason robot for the 2023 FRC season: Charged Up!
