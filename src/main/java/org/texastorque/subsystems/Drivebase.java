@@ -7,6 +7,7 @@
 package org.texastorque.subsystems;
 
 import java.util.Optional;
+
 import org.texastorque.Field;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
@@ -14,6 +15,8 @@ import org.texastorque.controllers.AutoLevelController;
 import org.texastorque.controllers.PathAlignController;
 import org.texastorque.controllers.PathAlignController.AlignState;
 import org.texastorque.controllers.PathAlignController.GridState;
+import org.texastorque.toast.lib.Toast;
+import org.texastorque.toast.lib.pipelines.AprilTagPipeline;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.auto.commands.TorqueContinuous;
 import org.texastorque.torquelib.base.TorqueMode;
@@ -22,17 +25,25 @@ import org.texastorque.torquelib.sensors.TorqueNavXGyro;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022.SwerveConfig;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
+
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public static enum State {
@@ -91,7 +102,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             LOC_BR = new Translation2d(-LENGTH / 2, WIDTH / 2);
 
     private final SwerveDriveKinematics kinematics;
-    private final SwerveDrivePoseEstimator poseEstimator;
 
     public final Field2d fieldMap = new Field2d();
 
@@ -116,6 +126,23 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     private final AutoLevelController autoLevelController = new AutoLevelController(this::getPose);
 
+    private final Toast toast;
+
+    /**
+     * Standard deviations of model states. Increase these numbers to trust your
+     * model's state estimates less. This matrix is in the form [x, y, theta]ᵀ,
+     * with units in meters and radians, then meters.
+     */
+    private static final Vector<N3> STATE_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+
+    /**
+     * Standard deviations of the vision measurements. Increase these numbers to
+     * trust global measurements from vision less. This matrix is in the form
+     * [x, y, theta]ᵀ, with units in meters and radians.
+     */
+    private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
+
+
     private Drivebase() {
         teleopOmegaController.enableContinuousInput(-Math.PI, Math.PI);
         lastRotationRadians = gyro.getRotation2d().getRadians();
@@ -134,12 +161,18 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
 
-        poseEstimator = new SwerveDrivePoseEstimator(kinematics, gyro.getHeadingCCW(),
-                getModulePositions(), INITIAL_POS);
+        var poseEstimator = new SwerveDrivePoseEstimator(kinematics, gyro.getHeadingCCW(),
+                getModulePositions(), INITIAL_POS, STATE_STDS, VISION_STDS);
 
         swerveStates = new SwerveModuleState[4];
         for (int i = 0; i < swerveStates.length; i++)
             swerveStates[i] = new SwerveModuleState();
+
+        toast = new Toast(Field.getCurrentFieldLayout(), poseEstimator);
+
+        SmartDashboard.putData("FIELD", fieldMap);
+
+        initToast();
     }
 
     public SpeedSetting getSpeedSetting() {
@@ -175,6 +208,23 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         return autoLevelController.isDone();
     }
 
+    private final double i2m = 0.0254, h = 5.5 * i2m, p = Math.PI / 4, r = Math.PI / 2;
+
+    private void initToast() {
+        toast.setPipeline("local0", new AprilTagPipeline(new Transform3d(
+            new Translation3d(-1 * i2m, 12.75 * i2m, h),
+            new Rotation3d(0, p, 0))));
+        toast.setPipeline("local2", new AprilTagPipeline(new Transform3d(
+            new Translation3d(-11.25 * i2m, -1.25 * i2m, h),
+            new Rotation3d(0, p, r * 3))));
+        toast.setPipeline("local4", new AprilTagPipeline(new Transform3d(
+            new Translation3d(-.75 * i2m, -12.75 * i2m, h),
+            new Rotation3d(0, p, r * 2))));
+        toast.setPipeline("local6", new AprilTagPipeline(new Transform3d(
+            new Translation3d(11.25 * i2m, .75 * i2m, h),
+            new Rotation3d(0, p, r))));
+    }
+
     @Override
     public final void initialize(final TorqueMode mode) {
         mode.onAuto(() -> {
@@ -187,6 +237,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             state = State.FIELD_RELATIVE;
         });
 
+        initToast();
     }
 
     public SwerveModulePosition[] getModulePositions() {
@@ -203,6 +254,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     @Override
     public final void update(final TorqueMode mode) {
         updateFeedback();
+        SmartDashboard.putString("pose esimation", toast.estimator.getEstimatedPosition().toString());
         requestedState = state;
 
         if (state == State.XF) {
@@ -249,7 +301,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     public void resetPose(final Pose2d pose) {
         gyro.setOffsetCW(pose.getRotation());
-        poseEstimator.resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
+        toast.estimator.resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
     }
 
     public void resetPose(final Rotation2d rotation) {
@@ -271,7 +323,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     // @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
         updateFeedback();
-        return poseEstimator.getEstimatedPosition();
+        return toast.estimator.getEstimatedPosition();
     }
 
     // @Log.Dial(name = "Gyro Radians")
@@ -288,11 +340,11 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     private void updateFeedback() {
-        poseEstimator.update(gyro.getHeadingCCW(), getModulePositions());
+        toast.update(gyro.getHeadingCCW(), getModulePositions());
 
         fieldMap.setRobotPose(DriverStation.getAlliance() == DriverStation.Alliance.Blue
-                ? poseEstimator.getEstimatedPosition()
-                : Field.reflectPosition(poseEstimator.getEstimatedPosition()));
+                ? toast.estimator.getEstimatedPosition()
+                : Field.reflectPosition(toast.estimator.getEstimatedPosition()));
     }
 
     private void preseveModulePositions() {
@@ -319,16 +371,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             inputSpeeds.omegaRadiansPerSecond = omega;
         } else
             lastRotationRadians = realRotationRadians;
-    }
-
-    // @Log.ToString(name = "Robot Pose X")
-    private double logPoseX() {
-        return getPose().getTranslation().getX();
-    }
-
-    // @Log.ToString(name = "Robot Pose Y")
-    private double logPoseY() {
-        return getPose().getTranslation().getY();
     }
 
     public static synchronized final Drivebase getInstance() {
