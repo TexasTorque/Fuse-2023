@@ -254,7 +254,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     @Override
     public final void update(final TorqueMode mode) {
         updateFeedback();
-        SmartDashboard.putString("pose esimation", toast.estimator.getEstimatedPosition().toString());
+        SmartDashboard.putString("pose esimation", toast.getEstimator().getEstimatedPosition().toString());
         requestedState = state;
 
         if (state == State.XF) {
@@ -301,7 +301,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     public void resetPose(final Pose2d pose) {
         gyro.setOffsetCW(pose.getRotation());
-        toast.estimator.resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
+        toast.getEstimator().resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
     }
 
     public void resetPose(final Rotation2d rotation) {
@@ -323,7 +323,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     // @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
         updateFeedback();
-        return toast.estimator.getEstimatedPosition();
+        return toast.getEstimator().getEstimatedPosition();
     }
 
     // @Log.Dial(name = "Gyro Radians")
@@ -343,8 +343,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         toast.update(gyro.getHeadingCCW(), getModulePositions());
 
         fieldMap.setRobotPose(DriverStation.getAlliance() == DriverStation.Alliance.Blue
-                ? toast.estimator.getEstimatedPosition()
-                : Field.reflectPosition(toast.estimator.getEstimatedPosition()));
+                ? toast.getEstimator().getEstimatedPosition()
+                : Field.reflectPosition(toast.getEstimator().getEstimatedPosition()));
     }
 
     private void preseveModulePositions() {
