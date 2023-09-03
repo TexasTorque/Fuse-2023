@@ -4,12 +4,16 @@ import org.texastorque.Ports;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.motors.TorqueNEO;
+import com.revrobotics.AbsoluteEncoder;
+import com.revrobotics.SparkMaxAbsoluteEncoder.Type;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.DutyCycleEncoder;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Arm extends TorqueSubsystem {
+    private static volatile Arm instance;
+
 
     public static class ArmPose {
         private static final double TELESCOPE_TOLERANCE = .6,
@@ -31,14 +35,14 @@ public class Arm extends TorqueSubsystem {
 
     public static enum State {
         // @formatter:off
-        HIGH(new ArmPose(2.5, Rotation2d.fromDegrees(205)),
-            new ArmPose(0, Rotation2d.fromDegrees(228))), 
-        MID(new ArmPose(2.5, Rotation2d.fromDegrees(205)),
-            new ArmPose(0, Rotation2d.fromDegrees(228))),
-        STOW(new ArmPose(2.5, Rotation2d.fromDegrees(205)),
-            new ArmPose(0, Rotation2d.fromDegrees(228))), 
-        INTAKE(new ArmPose(2.5, Rotation2d.fromDegrees(205)),
-            new ArmPose(0, Rotation2d.fromDegrees(228)));
+        HIGH(new ArmPose(0, Rotation2d.fromDegrees(20)),
+            new ArmPose(0, Rotation2d.fromDegrees(20))), 
+        MID(new ArmPose(0, Rotation2d.fromDegrees(10)),
+            new ArmPose(0, Rotation2d.fromDegrees(10))),
+        STOW(new ArmPose(0, Rotation2d.fromDegrees(200)),
+            new ArmPose(0, Rotation2d.fromDegrees(200))), 
+        INTAKE(new ArmPose(0, Rotation2d.fromDegrees(180)),
+            new ArmPose(0, Rotation2d.fromDegrees(180)));
         // @formatter:on
 
         public final ArmPose cubePose, conePose;
@@ -64,15 +68,23 @@ public class Arm extends TorqueSubsystem {
 
     private final TorqueNEO rotate;
     private final PIDController rotatePID;
-    private final DutyCycleEncoder rotateEncoder;
+    private final AbsoluteEncoder rotateEncoder;
+
+    private Rotation2d currentRotaryPose;
     private State state;
-    
+
 
     public Arm() {
         rotate = new TorqueNEO(Ports.ARM);
         rotatePID = new PIDController(1, 0, 0);
-        rotateEncoder = new DutyCycleEncoder(Ports.ARM_ENCODER);
+        rotateEncoder = rotate.getAbsoluteEncoder(Type.kDutyCycle);
+
+        currentRotaryPose = new Rotation2d(rotate.getPosition());
         state = State.STOW;
+    }
+
+    public void setState(final State state) {
+        this.state = state;
     }
 
     @Override
@@ -80,6 +92,15 @@ public class Arm extends TorqueSubsystem {
 
     @Override
     public void update(TorqueMode mode) {
-        rotate.setVolts(rotatePID.calculate(rotate.getPosition(), state.get().rotaryPose.getRadians()));
+        currentRotaryPose = Rotation2d.fromDegrees(rotateEncoder.getPosition());
+
+        SmartDashboard.putNumber("arm::currentRotaryPose", currentRotaryPose.getRadians());
+
+        rotate.setVolts(rotatePID.calculate(currentRotaryPose.getRadians(),
+                state.get().rotaryPose.getRadians()));
+    }
+
+    public static synchronized final Arm getInstance() {
+        return instance == null ? instance = new Arm() : instance;
     }
 }

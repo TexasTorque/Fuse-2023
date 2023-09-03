@@ -58,30 +58,12 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         }
     }
 
-    public enum SpeedSetting {
-        FAST(1.0), SLOW(.25);
-
-        public final double speed;
-
-        private SpeedSetting(final double speed) {
-            this.speed = speed;
-        }
-
-        public boolean isSlow() {
-            return this == SLOW;
-        }
-    }
 
     private static volatile Drivebase instance;
 
-    public static final double WIDTH = Units.inchesToMeters(18), // m (swerve to swerve)
-            LENGTH = Units.inchesToMeters(21), // m (swerve to swerve)
-
-            MAX_VELOCITY = 4.522, // m/s
-            MAX_ACCELERATION = 8.958, // m/s^2
-            MAX_ANGULAR_VELOCITY = 2 * Math.PI, // rad/s
-            MAX_ANGULAR_ACCELERATION = 2 * Math.PI, // rad/s^2
-            WHEEL_DIAMETER = Units.inchesToMeters(4.0); // m
+    public static final double WIDTH = Units.inchesToMeters(18), LENGTH = Units.inchesToMeters(21),
+            MAX_VELOCITY = 4.522, MAX_ACCELERATION = 8.958, MAX_ANGULAR_VELOCITY = 2 * Math.PI,
+            MAX_ANGULAR_ACCELERATION = 2 * Math.PI, WHEEL_DIAMETER = Units.inchesToMeters(4.0);
 
     public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(0));
 
@@ -89,10 +71,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         return new SwerveModulePosition(-pose.distanceMeters, pose.angle);
     }
 
-    // @Log.ToString
-    public SpeedSetting speedSetting = SpeedSetting.FAST;
-
-    // @Log.ToString
     private State state = State.ROBOT_RELATIVE;
 
     private State requestedState = State.ROBOT_RELATIVE;
@@ -115,7 +93,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     private SwerveModuleState[] swerveStates;
 
-    // @Log.ToString(name = "Chassis Speeds")
     public TorqueSwerveSpeeds inputSpeeds = new TorqueSwerveSpeeds(0, 0, 0);
 
     public double requestedRotation = 0;
@@ -130,18 +107,20 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private final Toast toast;
 
     /**
-     * Standard deviations of model states. Increase these numbers to trust your
-     * model's state estimates less. This matrix is in the form [x, y, theta]ᵀ,
-     * with units in meters and radians, then meters.
+     * Standard deviations of model states. Increase these numbers to trust your model's state
+     * estimates less. This matrix is in the form [x, y, theta]ᵀ, with units in meters and radians,
+     * then meters.
      */
-    private static final Vector<N3> STATE_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+    private static final Vector<N3> STATE_STDS =
+            VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
     /**
-     * Standard deviations of the vision measurements. Increase these numbers to
-     * trust global measurements from vision less. This matrix is in the form
-     * [x, y, theta]ᵀ, with units in meters and radians.
+     * Standard deviations of the vision measurements. Increase these numbers to trust global
+     * measurements from vision less. This matrix is in the form [x, y, theta]ᵀ, with units in
+     * meters and radians.
      */
-    private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
+    private static final Vector<N3> VISION_STDS =
+            VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
 
 
     private Drivebase() {
@@ -154,8 +133,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAcceleration = MAX_ACCELERATION;
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
-        
-        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD,-2.9452498 , config);
+
+        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, -2.9452498, config);
         fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 1.978831216692924, config);
         bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, -.607455164194107, config);
         br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, 1.4542108476, config);
@@ -176,9 +155,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         initToast();
     }
 
-    public SpeedSetting getSpeedSetting() {
-        return speedSetting;
-    }
 
     public void setState(final State state) {
         this.state = state;
@@ -212,18 +188,17 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private final double i2m = 0.0254, h = 5.5 * i2m, p = Math.PI / 4, r = Math.PI / 2;
 
     private void initToast() {
-        toast.setPipeline("local0", new AprilTagPipeline(new Transform3d(
-            new Translation3d(-1 * i2m, 12.75 * i2m, h),
-            new Rotation3d(0, p, 0))));
+        toast.setPipeline("local0",
+                new AprilTagPipeline(new Transform3d(new Translation3d(-1 * i2m, 12.75 * i2m, h),
+                        new Rotation3d(0, p, 0))));
         toast.setPipeline("local2", new AprilTagPipeline(new Transform3d(
-            new Translation3d(-11.25 * i2m, -1.25 * i2m, h),
-            new Rotation3d(0, p, r * 3))));
-        toast.setPipeline("local4", new AprilTagPipeline(new Transform3d(
-            new Translation3d(-.75 * i2m, -12.75 * i2m, h),
-            new Rotation3d(0, p, r * 2))));
-        toast.setPipeline("local6", new AprilTagPipeline(new Transform3d(
-            new Translation3d(11.25 * i2m, .75 * i2m, h),
-            new Rotation3d(0, p, r))));
+                new Translation3d(-11.25 * i2m, -1.25 * i2m, h), new Rotation3d(0, p, r * 3))));
+        toast.setPipeline("local4",
+                new AprilTagPipeline(new Transform3d(new Translation3d(-.75 * i2m, -12.75 * i2m, h),
+                        new Rotation3d(0, p, r * 2))));
+        toast.setPipeline("local6",
+                new AprilTagPipeline(new Transform3d(new Translation3d(11.25 * i2m, .75 * i2m, h),
+                        new Rotation3d(0, p, r))));
 
         toast.setPipeline("remote0", new ConeDetectionPipeline());
     }
@@ -257,9 +232,11 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     @Override
     public final void update(final TorqueMode mode) {
         updateFeedback();
-        SmartDashboard.putString("pose esimation", toast.getEstimator().getEstimatedPosition().toString());
-        SmartDashboard.putNumber("cone detection", ((ConeDetectionPipeline) toast.getPipeline("remote0")).getBestTargetX());
-        
+        SmartDashboard.putString("pose esimation",
+                toast.getEstimator().getEstimatedPosition().toString());
+        SmartDashboard.putNumber("cone detection",
+                ((ConeDetectionPipeline) toast.getPipeline("remote0")).getBestTargetX());
+
         requestedState = state;
 
         if (state == State.XF) {
@@ -275,7 +252,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                 convertToFieldRelative();
 
             } else if (mode.isTeleop() && state != State.ALIGN) {
-                inputSpeeds = inputSpeeds.times(speedSetting.speed);
+                inputSpeeds = inputSpeeds.times(1);
             }
 
             if (state == State.FIELD_RELATIVE) {
@@ -325,13 +302,11 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         gyro.setOffsetCW(Rotation2d.fromRadians(0));
     }
 
-    // @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
         updateFeedback();
         return toast.getEstimator().getEstimatedPosition();
     }
 
-    // @Log.Dial(name = "Gyro Radians")
     public double getGyroAngle() {
         return gyro.getHeadingCCW().getRadians();
     }
@@ -361,8 +336,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     private void xFactor() {
         fl.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45)));
-        fr.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(90 + 45)));
-        bl.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(90 + 45)));
+        fr.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(135)));
+        bl.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(135)));
         br.setDesiredState(new SwerveModuleState(0, Rotation2d.fromDegrees(45)));
     }
 
