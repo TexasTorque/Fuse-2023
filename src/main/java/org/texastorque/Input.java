@@ -26,11 +26,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
         private final static double DEADBAND = 0.125;
 
-
-
-        private final TorqueBoolSupplier xFactorToggle, resetGyroClick, wantsIntake, wantsOuttake,
-                        gamePieceModeToggle, slowMode, armToHome, wristLeft, wristRight, wristUp,
-                        arcArm, scoreHigh, scoreMid;
+        private final TorqueBoolSupplier xFactorToggle, resetGyroClick;
 
 
 
@@ -40,30 +36,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
                 xFactorToggle = new TorqueToggleSupplier(driver::isXButtonDown);
                 resetGyroClick = new TorqueClickSupplier(driver::isRightCenterButtonPressed);
-                slowMode = new TorqueToggleSupplier(driver::isAButtonDown);
-
-
-
-                wantsIntake = new TorqueBoolSupplier(
-                                () -> operator.isRightTriggerDown() || driver.isRightTriggerDown());
-
-                wantsOuttake = new TorqueBoolSupplier(
-                                () -> operator.isLeftTriggerDown() || driver.isLeftTriggerDown());
-
-
-                gamePieceModeToggle = new TorqueToggleSupplier(
-                                () -> operator.isLeftBumperDown() || driver.isYButtonDown());
-
-
-                armToHome = new TorqueClickSupplier(operator::isAButtonPressed);
-                scoreHigh = new TorqueClickSupplier(operator::isYButtonPressed);
-                scoreMid = new TorqueClickSupplier(operator::isBButtonPressed);
-
-                // make these clicks!!
-                wristLeft = new TorqueBoolSupplier(operator::isDPADLeftDown);
-                wristRight = new TorqueBoolSupplier(operator::isDPADRightDown);
-                wristUp = new TorqueBoolSupplier(operator::isDPADUpDown);
-                arcArm = new TorqueBoolSupplier(operator::isDPADDownDown);
+              
         }
 
 
@@ -79,40 +52,13 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
                 xFactorToggle.onTrue(() -> drivebase.setState(Drivebase.State.XF));
 
-                // gamePieceModeToggle.onTrueOrFalse(() -> hand.setGamePieceMode(GamePiece.CONE),
-                //                 () -> hand.setGamePieceMode(GamePiece.CUBE));
-
-                // wantsIntake.onTrueOrFalse(() -> {
-                //         arm.setState(Arm.State.OMNI_INTAKE);
-                //         hand.runIntake(TorqueDirection.FORWARD);
-                // }, () -> {
-                //         hand.runIntake(TorqueDirection.NEUTRAL);
-                // });
-
-                // wantsOuttake.onTrueOrFalse(() -> {
-                //         hand.runIntake(TorqueDirection.REVERSE);
-                // }, () -> {
-                //         hand.runIntake(TorqueDirection.NEUTRAL);
-                // });
-
-                // armToHome.onTrue(() -> arm.setState(Arm.State.HOME));
-                // scoreHigh.onTrue(() -> arm.setState(Arm.State.SCORE_HIGH));
-                // scoreMid.onTrue(() -> arm.setState(Arm.State.SCORE_MID));
-                // arcArm.onTrue(() -> arm.setState(Arm.State.ARC));
-                // arc the arm over from front to back
-
-                // wristLeft.onTrue(() -> hand.setState(Hand.State.LEFT));
-                // wristRight.onTrue(() -> hand.setState(Hand.State.RIGHT));
-                // wristUp.onTrue(() -> hand.setState(Hand.State.UP));
+             
 
         }
 
 
 
         private void updateDrivebaseSpeeds() {
-                SmartDashboard.putBoolean("slowMode", slowMode.get());
-                drivebase.speedSetting = slowMode.get() ? SpeedSetting.SLOW : SpeedSetting.FAST;
-
                 final double xVelocity =
                                 TorqueMath.scaledLinearDeadband(driver.getLeftYAxis(), DEADBAND)
                                                 * Drivebase.MAX_VELOCITY;

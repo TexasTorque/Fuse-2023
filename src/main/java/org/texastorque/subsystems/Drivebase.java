@@ -17,6 +17,7 @@ import org.texastorque.controllers.PathAlignController.AlignState;
 import org.texastorque.controllers.PathAlignController.GridState;
 import org.texastorque.toast.lib.Toast;
 import org.texastorque.toast.lib.pipelines.AprilTagPipeline;
+import org.texastorque.toast.lib.pipelines.ConeDetectionPipeline;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.auto.commands.TorqueContinuous;
 import org.texastorque.torquelib.base.TorqueMode;
@@ -223,6 +224,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         toast.setPipeline("local6", new AprilTagPipeline(new Transform3d(
             new Translation3d(11.25 * i2m, .75 * i2m, h),
             new Rotation3d(0, p, r))));
+
+        toast.setPipeline("remote0", new ConeDetectionPipeline());
     }
 
     @Override
@@ -255,6 +258,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public final void update(final TorqueMode mode) {
         updateFeedback();
         SmartDashboard.putString("pose esimation", toast.getEstimator().getEstimatedPosition().toString());
+        SmartDashboard.putNumber("cone detection", ((ConeDetectionPipeline) toast.getPipeline("remote0")).getBestTargetX());
+        
         requestedState = state;
 
         if (state == State.XF) {
