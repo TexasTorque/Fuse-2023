@@ -4,8 +4,11 @@ import org.texastorque.Ports;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.motors.TorqueNEO;
-import com.revrobotics.AbsoluteEncoder;
-import com.revrobotics.SparkMaxAbsoluteEncoder.Type;
+import org.texastorque.torquelib.sensors.TorqueCANCoder;
+import org.texastorque.torquelib.util.TorqueMath;
+import com.ctre.phoenix.sensors.CANCoderConfiguration;
+import com.ctre.phoenix.sensors.SensorInitializationStrategy;
+import com.ctre.phoenix.sensors.SensorTimeBase;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
@@ -14,10 +17,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class Arm extends TorqueSubsystem {
     private static volatile Arm instance;
 
-
     public static class ArmPose {
-        private static final double TELESCOPE_TOLERANCE = .6,
-                ROTARY_TOLERANCE = Units.degreesToRadians(10);
+        private static final double TELESCOPE_TOLERANCE = .5,
+                ROTARY_TOLERANCE = Units.degreesToRadians(5);
 
         public final double telescopePose;
         public final Rotation2d rotaryPose;
@@ -66,21 +68,30 @@ public class Arm extends TorqueSubsystem {
         }
     }
 
+    private final int ROTARY_ENCODER_OFFSET = 0;
+
     private final TorqueNEO rotate;
     private final PIDController rotatePID;
-    private final AbsoluteEncoder rotateEncoder;
+    private final TorqueCANCoder rotaryEncoder;
+    private final CANCoderConfiguration cancoderConfig;
 
     private Rotation2d currentRotaryPose;
     private State state;
 
-
     public Arm() {
         rotate = new TorqueNEO(Ports.ARM);
         rotatePID = new PIDController(1, 0, 0);
-        rotateEncoder = rotate.getAbsoluteEncoder(Type.kDutyCycle);
+        rotaryEncoder = new TorqueCANCoder(Ports.ARM_ROTARY_ENCODER);
+        cancoderConfig = new CANCoderConfiguration();
 
         currentRotaryPose = new Rotation2d(rotate.getPosition());
         state = State.STOW;
+
+        cancoderConfig.sensorCoefficient = 2 * Math.PI / 4096.0;
+        cancoderConfig.unitString = "rad";
+        cancoderConfig.sensorTimeBase = SensorTimeBase.PerSecond;
+        cancoderConfig.initializationStrategy = SensorInitializationStrategy.BootToAbsolutePosition;
+        rotaryEncoder.configAllSettings(cancoderConfig);
     }
 
     public void setState(final State state) {
@@ -88,11 +99,13 @@ public class Arm extends TorqueSubsystem {
     }
 
     @Override
-    public void initialize(TorqueMode mode) {}
+    public void initialize(TorqueMode mode) {
+    }
 
     @Override
     public void update(TorqueMode mode) {
-        currentRotaryPose = Rotation2d.fromDegrees(rotateEncoder.getPosition());
+        currentRotaryPose = Rotation2d                  // possibly negate?
+                .fromRadians(TorqueMath.constrain0to2PI(rotaryEncoder.getPosition() - ROTARY_ENCODER_OFFSET));
 
         SmartDashboard.putNumber("arm::currentRotaryPose", currentRotaryPose.getRadians());
 

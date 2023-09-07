@@ -16,7 +16,10 @@ public final class Ports {
     public static final SwervePorts BL_MOD = new SwervePorts(1, 2, 9);
 
     public static final int ARM = 13;
-    public static final int ARM_ENCODER = 14;
+    public static final int ARM_ROTARY_ENCODER = 14;
+    
+    public static final int CLAW_ROLLERS = 15;
+    public static final int CLAW_WRIST = 16;
     
 
 }
