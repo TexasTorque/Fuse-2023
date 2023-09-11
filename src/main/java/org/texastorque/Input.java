@@ -31,10 +31,10 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         xFactor = new TorqueToggleSupplier(driver::isXButtonDown);
         resetGyro = new TorqueClickSupplier(driver::isRightCenterButtonPressed);
 
-        high = new TorqueToggleSupplier(operator::isYButtonDown);
-        mid = new TorqueToggleSupplier(operator::isBButtonDown);
-        stow = new TorqueToggleSupplier(operator::isAButtonDown);
-        intake = new TorqueToggleSupplier(driver::isRightTriggerDown);
+        high = new TorqueClickSupplier(operator::isYButtonDown);
+        mid = new TorqueClickSupplier(operator::isBButtonDown);
+        stow = new TorqueClickSupplier(operator::isAButtonDown);
+        intake = new TorqueClickSupplier(operator::isXButtonDown);
     }
 
 

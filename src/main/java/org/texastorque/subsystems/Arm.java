@@ -37,14 +37,14 @@ public class Arm extends TorqueSubsystem {
 
     public static enum State {
         // @formatter:off
-        HIGH(new ArmPose(0, Rotation2d.fromDegrees(20)),
-            new ArmPose(0, Rotation2d.fromDegrees(20))), 
-        MID(new ArmPose(0, Rotation2d.fromDegrees(10)),
-            new ArmPose(0, Rotation2d.fromDegrees(10))),
-        STOW(new ArmPose(0, Rotation2d.fromDegrees(200)),
-            new ArmPose(0, Rotation2d.fromDegrees(200))), 
-        INTAKE(new ArmPose(0, Rotation2d.fromDegrees(180)),
-            new ArmPose(0, Rotation2d.fromDegrees(180)));
+        HIGH(new ArmPose(0, Rotation2d.fromDegrees(140)),
+            new ArmPose(0, Rotation2d.fromDegrees(140))), 
+        MID(new ArmPose(0, Rotation2d.fromDegrees(180)),
+            new ArmPose(0, Rotation2d.fromDegrees(180))),
+        STOW(new ArmPose(0, Rotation2d.fromDegrees(340)),
+            new ArmPose(0, Rotation2d.fromDegrees(340))), 
+        INTAKE(new ArmPose(0, Rotation2d.fromDegrees(250)),
+            new ArmPose(0, Rotation2d.fromDegrees(250)));
         // @formatter:on
 
         public final ArmPose cubePose, conePose;
@@ -63,14 +63,15 @@ public class Arm extends TorqueSubsystem {
         }
 
         public ArmPose get() {
+            // when hand is made
             // return hand.isCubeMode() ? cubePose : conePose;
             return conePose;
         }
     }
 
-    private final int ROTARY_ENCODER_OFFSET = 0;
+    private final double ROTARY_ENCODER_OFFSET = .03681546;
 
-    private final TorqueNEO rotate;
+    private final TorqueNEO rotary;
     private final PIDController rotatePID;
     private final TorqueCANCoder rotaryEncoder;
     private final CANCoderConfiguration cancoderConfig;
@@ -79,12 +80,15 @@ public class Arm extends TorqueSubsystem {
     private State state;
 
     public Arm() {
-        rotate = new TorqueNEO(Ports.ARM);
-        rotatePID = new PIDController(1, 0, 0);
+        rotary = new TorqueNEO(Ports.ARM_ROTARY);
+        rotary.addFollower(Ports.ARM_ROTARY_2, false);
+        rotary.burnFlash();
+
+        rotatePID = new PIDController(21, 1, 0);
         rotaryEncoder = new TorqueCANCoder(Ports.ARM_ROTARY_ENCODER);
         cancoderConfig = new CANCoderConfiguration();
 
-        currentRotaryPose = new Rotation2d(rotate.getPosition());
+        currentRotaryPose = new Rotation2d(rotary.getPosition());
         state = State.STOW;
 
         cancoderConfig.sensorCoefficient = 2 * Math.PI / 4096.0;
@@ -92,6 +96,7 @@ public class Arm extends TorqueSubsystem {
         cancoderConfig.sensorTimeBase = SensorTimeBase.PerSecond;
         cancoderConfig.initializationStrategy = SensorInitializationStrategy.BootToAbsolutePosition;
         rotaryEncoder.configAllSettings(cancoderConfig);
+
     }
 
     public void setState(final State state) {
@@ -104,13 +109,34 @@ public class Arm extends TorqueSubsystem {
 
     @Override
     public void update(TorqueMode mode) {
-        currentRotaryPose = Rotation2d                  // possibly negate?
+        currentRotaryPose = Rotation2d // possibly negate?
                 .fromRadians(TorqueMath.constrain0to2PI(rotaryEncoder.getPosition() - ROTARY_ENCODER_OFFSET));
 
-        SmartDashboard.putNumber("arm::currentRotaryPose", currentRotaryPose.getRadians());
+        SmartDashboard.putString("arm::state", state.toString());
 
-        rotate.setVolts(rotatePID.calculate(currentRotaryPose.getRadians(),
-                state.get().rotaryPose.getRadians()));
+        double offsetRotaryPose = state.get().rotaryPose.getDegrees();
+
+        if (290 <= offsetRotaryPose && offsetRotaryPose <= 360)
+            offsetRotaryPose -= 360;
+        else if (235 <= offsetRotaryPose && offsetRotaryPose <= 290)
+            offsetRotaryPose = 235;
+
+        double offsetCurrentPose = currentRotaryPose.getDegrees();
+
+        if (290 <= offsetCurrentPose && offsetCurrentPose <= 360)
+            offsetCurrentPose -= 360;
+
+        SmartDashboard.putNumber("arm::offsetCurrentPose", offsetCurrentPose);
+
+        SmartDashboard.putNumber("arm::offsetRotaryPose", offsetRotaryPose);
+
+        double rotaryVolts = TorqueMath.constrain(rotatePID.calculate(Math.toRadians(offsetCurrentPose),
+                Math.toRadians(offsetRotaryPose)), 12);
+
+        rotary.setVolts(rotaryVolts);
+
+        SmartDashboard.putNumber("arm::rotaryVolts", rotaryVolts);
+
     }
 
     public static synchronized final Arm getInstance() {
