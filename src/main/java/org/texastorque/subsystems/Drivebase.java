@@ -42,6 +42,7 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -133,14 +134,14 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
      * model's state estimates less. This matrix is in the form [x, y, theta]ᵀ,
      * with units in meters and radians, then meters.
      */
-    private static final Vector<N3> STATE_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+    private static final Vector<N3> STATE_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(30));
 
     /**
      * Standard deviations of the vision measurements. Increase these numbers to
      * trust global measurements from vision less. This matrix is in the form
      * [x, y, theta]ᵀ, with units in meters and radians.
      */
-    private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
+    private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(3));
 
 
     private Drivebase() {
@@ -210,19 +211,27 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     private final double i2m = 0.0254, h = 5.5 * i2m, p = Math.PI / 4, r = Math.PI / 2;
 
+    private final Rotation3d rot(final double t) {
+        return new Rotation3d(0, 0, 0);
+    }
+
     private void initToast() {
-        toast.setPipeline("local0", new AprilTagPipeline(new Transform3d(
-            new Translation3d(-1 * i2m, 12.75 * i2m, h),
-            new Rotation3d(0, p, 0))));
-        toast.setPipeline("local2", new AprilTagPipeline(new Transform3d(
-            new Translation3d(-11.25 * i2m, -1.25 * i2m, h),
-            new Rotation3d(0, p, r * 3))));
-        toast.setPipeline("local4", new AprilTagPipeline(new Transform3d(
-            new Translation3d(-.75 * i2m, -12.75 * i2m, h),
-            new Rotation3d(0, p, r * 2))));
-        toast.setPipeline("local6", new AprilTagPipeline(new Transform3d(
-            new Translation3d(11.25 * i2m, .75 * i2m, h),
-            new Rotation3d(0, p, r))));
+        toast.setPipeline("local0", new AprilTagPipeline(new Transform3d()));
+            // new Transform3d(
+            // new Translation3d(-1 * i2m, 12.75 * i2m, h),
+            // rot(0))));
+        // toast.setPipeline("local2", new AprilTagPipeline(new Transform3d()));
+            // new Transform3d(
+            // new Translation3d(-11.25 * i2m, -1.25 * i2m, h),
+            // rot(0))));
+        // toast.setPipeline("local4", new AprilTagPipeline(new Transform3d()));
+            // new Transform3d(
+            // new Translation3d(-.75 * i2m, -12.75 * i2m, h),
+            // rot(0))));
+        // toast.setPipeline("local6", new AprilTagPipeline(new Transform3d()));
+            // new Transform3d(
+            // new Translation3d(11.25 * i2m, .75 * i2m, h),
+            // rot(0))));
     }
 
     @Override
@@ -251,9 +260,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         inputSpeeds = inputSpeeds.toFieldRelativeSpeeds(gyro.getHeadingCCW());
     }
 
+    private double lastTime = -1, slowLoops = 0;
+
     @Override
     public final void update(final TorqueMode mode) {
-        updateFeedback();
         SmartDashboard.putString("pose esimation", toast.getEstimator().getEstimatedPosition().toString());
         requestedState = state;
 
@@ -297,6 +307,17 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         autoLevelController.resetIf(state != State.BALANCE);
 
         state = state.parent;
+
+        updateFeedback();
+
+        final double time = Timer.getFPGATimestamp();
+        final double delta = time - lastTime;
+        if (delta > 0.03) {
+            slowLoops++;
+        }
+        SmartDashboard.putNumber("Drivebase Update T", delta);
+        SmartDashboard.putNumber("Slow Loops", slowLoops);
+        lastTime = time;
     }
 
     public void resetPose(final Pose2d pose) {
@@ -322,7 +343,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     // @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
-        updateFeedback();
         return toast.getEstimator().getEstimatedPosition();
     }
 
