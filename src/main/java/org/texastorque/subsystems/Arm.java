@@ -109,7 +109,7 @@ public class Arm extends TorqueSubsystem {
 
     @Override
     public void update(TorqueMode mode) {
-        currentRotaryPose = Rotation2d // possibly negate?
+        currentRotaryPose = Rotation2d
                 .fromRadians(TorqueMath.constrain0to2PI(rotaryEncoder.getPosition() - ROTARY_ENCODER_OFFSET));
 
         SmartDashboard.putString("arm::state", state.toString());
@@ -133,9 +133,9 @@ public class Arm extends TorqueSubsystem {
         double rotaryVolts = TorqueMath.constrain(rotatePID.calculate(Math.toRadians(offsetCurrentPose),
                 Math.toRadians(offsetRotaryPose)), 12);
 
-        rotary.setVolts(rotaryVolts);
-
         SmartDashboard.putNumber("arm::rotaryVolts", rotaryVolts);
+
+        rotary.setVolts(rotaryVolts);
 
     }
 
