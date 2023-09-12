@@ -16,7 +16,6 @@ import org.texastorque.torquelib.sensors.TorqueController;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
 import org.texastorque.torquelib.util.TorqueMath;
 
-
 public final class Input extends TorqueInput<TorqueController> implements Subsystems {
     private static volatile Input instance;
 
@@ -37,7 +36,6 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         intake = new TorqueClickSupplier(operator::isXButtonDown);
     }
 
-
     public void update() {
         updateDrivebase();
         updateArm();
@@ -52,18 +50,17 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         final double yVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftXAxis(), DEADBAND)
                 * Drivebase.MAX_VELOCITY;
 
-        final double rotationVelocity =
-                TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
-                        * Drivebase.MAX_ANGULAR_VELOCITY;
+        final double rotationVelocity = TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
+                * Drivebase.MAX_ANGULAR_VELOCITY;
 
         drivebase.inputSpeeds = new TorqueSwerveSpeeds(xVelocity, yVelocity, rotationVelocity);
     }
 
     public void updateArm() {
-        high.onTrue(() -> arm.setState(Arm.State.HIGH));
-        mid.onTrue(() -> arm.setState(Arm.State.MID));
-        stow.onTrue(() -> arm.setState(Arm.State.STOW));
-        intake.onTrue(() -> arm.setState(Arm.State.INTAKE));
+        high.onTrue(() -> arm.setState(Arm.State.HIGH_FORWARD));
+        mid.onTrue(() -> arm.setState(Arm.State.MID_FORWARD));
+        stow.onTrue(() -> arm.setState(Arm.State.STOW_FORWARD));
+        intake.onTrue(() -> arm.setState(Arm.State.INTAKE_FORWARD));
     }
 
     public static final synchronized Input getInstance() {

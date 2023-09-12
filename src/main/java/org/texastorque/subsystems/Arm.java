@@ -35,16 +35,49 @@ public class Arm extends TorqueSubsystem {
         }
     }
 
+    /* @formatter:off
+    *
+    *                    90
+    *                     ↑
+    *                0 ←  * → 180
+    *     HARDSTOP: 235 / ↓ \ HARDSTOP: 290
+    *                    270
+    *
+    *                   ___
+    *                  |...|
+    *                   | |
+    *                   | |
+    *                 | |-| |
+    *                 |     |
+    *                 |     | ___
+    *                 |_____|   /
+    *                /________ /
+    */
     public static enum State {
-        // @formatter:off
-        HIGH(new ArmPose(0, Rotation2d.fromDegrees(140)),
-            new ArmPose(0, Rotation2d.fromDegrees(140))), 
-        MID(new ArmPose(0, Rotation2d.fromDegrees(180)),
+        HIGH_FORWARD(
+            new ArmPose(0, Rotation2d.fromDegrees(135)),
+            new ArmPose(0, Rotation2d.fromDegrees(135))), 
+        MID_FORWARD(
+            new ArmPose(0, Rotation2d.fromDegrees(180)),
             new ArmPose(0, Rotation2d.fromDegrees(180))),
-        STOW(new ArmPose(0, Rotation2d.fromDegrees(340)),
-            new ArmPose(0, Rotation2d.fromDegrees(340))), 
-        INTAKE(new ArmPose(0, Rotation2d.fromDegrees(250)),
-            new ArmPose(0, Rotation2d.fromDegrees(250)));
+        STOW_FORWARD(
+            new ArmPose(0, Rotation2d.fromDegrees(280)),
+            new ArmPose(0, Rotation2d.fromDegrees(280))), 
+        INTAKE_FORWARD(
+            new ArmPose(0, Rotation2d.fromDegrees(260)),
+            new ArmPose(0, Rotation2d.fromDegrees(260))),     
+        HIGH_BACKWARD(
+            new ArmPose(0, Rotation2d.fromDegrees(45)), 
+            new ArmPose(0, Rotation2d.fromDegrees(45))),
+        MID_BACKWARD(
+            new ArmPose(0, Rotation2d.fromDegrees(0)),
+            new ArmPose(0, Rotation2d.fromDegrees(0))),
+        STOW_BACKWARD(
+            new ArmPose(0, Rotation2d.fromDegrees(230)),
+            new ArmPose(0, Rotation2d.fromDegrees(230))), 
+        INTAKE_BACKWARD(
+            new ArmPose(0, Rotation2d.fromDegrees(200)),
+            new ArmPose(0, Rotation2d.fromDegrees(200)));
         // @formatter:on
 
         public final ArmPose cubePose, conePose;
@@ -89,7 +122,7 @@ public class Arm extends TorqueSubsystem {
         cancoderConfig = new CANCoderConfiguration();
 
         currentRotaryPose = new Rotation2d(rotary.getPosition());
-        state = State.STOW;
+        state = State.STOW_FORWARD;
 
         cancoderConfig.sensorCoefficient = 2 * Math.PI / 4096.0;
         cancoderConfig.unitString = "rad";
