@@ -110,9 +110,13 @@ public class Arm extends TorqueSubsystem {
     public Arm() {
         rotary = new TorqueNEO(Ports.ARM_ROTARY);
         rotary.addFollower(Ports.ARM_ROTARY_2, false);
+        rotary.setVoltageCompensation(12.6);
+        rotary.setBreakMode(true);
         rotary.burnFlash();
 
         telescope = new TorqueNEO(Ports.TELESCOPE);
+        telescope.setVoltageCompensation(12.6);
+        telescope.setBreakMode(true);
         telescopeEncoder = telescope.getAbsoluteEncoder(Type.kDutyCycle);
         telescopePID = new PIDController(1, 0, 0);
         telescope.burnFlash();

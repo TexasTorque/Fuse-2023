@@ -9,5 +9,6 @@ public final class Robot extends TorqueRobotBase implements Subsystems {
         addSubsystem(drivebase);
         addSubsystem(arm);
         addSubsystem(lights);
+        addSubsystem(wrist);
     }
 }

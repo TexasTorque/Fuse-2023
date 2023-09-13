@@ -66,7 +66,7 @@ public final class Lights extends TorqueSubsystem implements Subsystems {
     }
 
     public final LightAction getColor(final TorqueMode mode) {
-        return solidPurple;
+        return wrist.isConeMode() ? solidYellow : solidPurple;
     }
 
     @Override

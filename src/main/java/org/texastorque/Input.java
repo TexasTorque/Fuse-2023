@@ -7,6 +7,7 @@
 package org.texastorque;
 
 import org.texastorque.subsystems.Arm;
+import org.texastorque.subsystems.Wrist;
 import org.texastorque.subsystems.Drivebase;
 import org.texastorque.torquelib.base.TorqueInput;
 import org.texastorque.torquelib.control.TorqueBoolSupplier;
@@ -21,7 +22,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     private final static double DEADBAND = 0.125;
 
-    private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, intake;
+    private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, intake, gamePieceModeToggle, runIntake, runOuttake;
 
     private Input() {
         driver = new TorqueController(0, .001);
@@ -34,11 +35,17 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         mid = new TorqueClickSupplier(operator::isBButtonDown);
         stow = new TorqueClickSupplier(operator::isAButtonDown);
         intake = new TorqueClickSupplier(operator::isXButtonDown);
+
+        runIntake = new TorqueBoolSupplier(operator::isRightTriggerDown);
+        runOuttake = new TorqueBoolSupplier(operator::isLeftTriggerDown);
+
+        gamePieceModeToggle = new TorqueToggleSupplier(operator::isRightBumperDown);
     }
 
     public void update() {
         updateDrivebase();
         updateArm();
+        updateWrist();
     }
 
     private void updateDrivebase() {
@@ -61,6 +68,14 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         mid.onTrue(() -> arm.setState(Arm.State.MID));
         stow.onTrue(() -> arm.setState(Arm.State.STOW));
         intake.onTrue(() -> arm.setState(Arm.State.INTAKE_FORWARD));
+    }
+
+    public void updateWrist() {
+        runIntake.onTrue(() -> wrist.setState(Wrist.State.INTAKE));
+        runOuttake.onTrue(() -> wrist.setState(Wrist.State.OUTTAKE));
+
+        gamePieceModeToggle.onTrueOrFalse(() -> wrist.setGamePieceMode(Wrist.GamePiece.CONE),
+        () -> wrist.setGamePieceMode(Wrist.GamePiece.CUBE));
     }
 
     public static final synchronized Input getInstance() {
