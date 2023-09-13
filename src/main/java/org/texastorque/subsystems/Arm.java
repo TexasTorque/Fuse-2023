@@ -9,6 +9,8 @@ import org.texastorque.torquelib.util.TorqueMath;
 import com.ctre.phoenix.sensors.CANCoderConfiguration;
 import com.ctre.phoenix.sensors.SensorInitializationStrategy;
 import com.ctre.phoenix.sensors.SensorTimeBase;
+import com.revrobotics.AbsoluteEncoder;
+import com.revrobotics.SparkMaxAbsoluteEncoder.Type;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
@@ -40,7 +42,7 @@ public class Arm extends TorqueSubsystem {
     *                    90
     *                     ↑
     *                0 ←  * → 180
-    *     HARDSTOP: 235 / ↓ \ HARDSTOP: 290
+    *     HARDSTOP: 290 / ↓ \ HARDSTOP: 235
     *                    270
     *
     *                   ___
@@ -54,30 +56,21 @@ public class Arm extends TorqueSubsystem {
     *                /________ /
     */
     public static enum State {
-        HIGH_FORWARD(
-            new ArmPose(0, Rotation2d.fromDegrees(135)),
-            new ArmPose(0, Rotation2d.fromDegrees(135))), 
-        MID_FORWARD(
-            new ArmPose(0, Rotation2d.fromDegrees(180)),
-            new ArmPose(0, Rotation2d.fromDegrees(180))),
-        STOW_FORWARD(
-            new ArmPose(0, Rotation2d.fromDegrees(280)),
-            new ArmPose(0, Rotation2d.fromDegrees(280))), 
+        HIGH(
+            new ArmPose(0, Rotation2d.fromDegrees(40)),
+            new ArmPose(0, Rotation2d.fromDegrees(40))), 
+        MID(
+            new ArmPose(0, Rotation2d.fromDegrees(5)),
+            new ArmPose(0, Rotation2d.fromDegrees(5))),
+        STOW(
+            new ArmPose(0, Rotation2d.fromDegrees(225)),
+            new ArmPose(0, Rotation2d.fromDegrees(225))), 
         INTAKE_FORWARD(
-            new ArmPose(0, Rotation2d.fromDegrees(260)),
-            new ArmPose(0, Rotation2d.fromDegrees(260))),     
-        HIGH_BACKWARD(
-            new ArmPose(0, Rotation2d.fromDegrees(45)), 
-            new ArmPose(0, Rotation2d.fromDegrees(45))),
-        MID_BACKWARD(
-            new ArmPose(0, Rotation2d.fromDegrees(0)),
-            new ArmPose(0, Rotation2d.fromDegrees(0))),
-        STOW_BACKWARD(
-            new ArmPose(0, Rotation2d.fromDegrees(230)),
-            new ArmPose(0, Rotation2d.fromDegrees(230))), 
+            new ArmPose(0, Rotation2d.fromDegrees(215)),
+            new ArmPose(0, Rotation2d.fromDegrees(215))),
         INTAKE_BACKWARD(
-            new ArmPose(0, Rotation2d.fromDegrees(200)),
-            new ArmPose(0, Rotation2d.fromDegrees(200)));
+            new ArmPose(0, Rotation2d.fromDegrees(280)),
+            new ArmPose(0, Rotation2d.fromDegrees(280)));
         // @formatter:on
 
         public final ArmPose cubePose, conePose;
@@ -102,14 +95,16 @@ public class Arm extends TorqueSubsystem {
         }
     }
 
-    private final double ROTARY_ENCODER_OFFSET = .03681546;
+    private final double ROTARY_ENCODER_OFFSET = .03681546, TELESCOPE_MIN = 0, TELESCOPE_MAX = 50;
 
-    private final TorqueNEO rotary;
-    private final PIDController rotatePID;
+    private final TorqueNEO rotary, telescope;
+    private final PIDController rotatePID, telescopePID;
     private final TorqueCANCoder rotaryEncoder;
     private final CANCoderConfiguration cancoderConfig;
+    private final AbsoluteEncoder telescopeEncoder;
 
     private Rotation2d currentRotaryPose;
+    private double currentTelescopePose;
     private State state;
 
     public Arm() {
@@ -117,19 +112,23 @@ public class Arm extends TorqueSubsystem {
         rotary.addFollower(Ports.ARM_ROTARY_2, false);
         rotary.burnFlash();
 
-        rotatePID = new PIDController(21, 1, 0);
+        telescope = new TorqueNEO(Ports.TELESCOPE);
+        telescopeEncoder = telescope.getAbsoluteEncoder(Type.kDutyCycle);
+        telescopePID = new PIDController(1, 0, 0);
+        telescope.burnFlash();
+
+        rotatePID = new PIDController(20, 1, 0);
         rotaryEncoder = new TorqueCANCoder(Ports.ARM_ROTARY_ENCODER);
         cancoderConfig = new CANCoderConfiguration();
 
         currentRotaryPose = new Rotation2d(rotary.getPosition());
-        state = State.STOW_FORWARD;
+        state = State.STOW;
 
         cancoderConfig.sensorCoefficient = 2 * Math.PI / 4096.0;
         cancoderConfig.unitString = "rad";
         cancoderConfig.sensorTimeBase = SensorTimeBase.PerSecond;
         cancoderConfig.initializationStrategy = SensorInitializationStrategy.BootToAbsolutePosition;
         rotaryEncoder.configAllSettings(cancoderConfig);
-
     }
 
     public void setState(final State state) {
@@ -142,6 +141,11 @@ public class Arm extends TorqueSubsystem {
 
     @Override
     public void update(TorqueMode mode) {
+        updateRotary();
+        updateTelescope();
+    }
+
+    private void updateRotary() {
         currentRotaryPose = Rotation2d
                 .fromRadians(TorqueMath.constrain0to2PI(rotaryEncoder.getPosition() - ROTARY_ENCODER_OFFSET));
 
@@ -169,7 +173,16 @@ public class Arm extends TorqueSubsystem {
         SmartDashboard.putNumber("arm::rotaryVolts", rotaryVolts);
 
         rotary.setVolts(rotaryVolts);
+    }
 
+    private void updateTelescope() {
+        currentTelescopePose = telescopeEncoder.getPosition();
+        double pidVolts = telescopePID.calculate(currentTelescopePose, state.get().telescopePose);
+        double telescopeVolts = TorqueMath.linearConstraint(pidVolts, currentTelescopePose, TELESCOPE_MIN,
+        TELESCOPE_MAX);
+
+        SmartDashboard.putNumber("arm::currentTelescopePose", currentTelescopePose);
+        // telescope.setVolts(telescopeVolts);
     }
 
     public static synchronized final Arm getInstance() {

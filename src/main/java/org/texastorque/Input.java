@@ -57,9 +57,9 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     public void updateArm() {
-        high.onTrue(() -> arm.setState(Arm.State.HIGH_FORWARD));
-        mid.onTrue(() -> arm.setState(Arm.State.MID_FORWARD));
-        stow.onTrue(() -> arm.setState(Arm.State.STOW_FORWARD));
+        high.onTrue(() -> arm.setState(Arm.State.HIGH));
+        mid.onTrue(() -> arm.setState(Arm.State.MID));
+        stow.onTrue(() -> arm.setState(Arm.State.STOW));
         intake.onTrue(() -> arm.setState(Arm.State.INTAKE_FORWARD));
     }
 

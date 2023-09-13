@@ -18,9 +18,14 @@ public final class Ports {
     public static final int ARM_ROTARY = 13; 
     public static final int ARM_ROTARY_2 = 14;
     public static final int ARM_ROTARY_ENCODER = 15;
+    public static final int TELESCOPE = 18;
+    public static final int TELESCOPE_ENCODER = 19;
+    public static final int WRIST = 20;
+    public static final int WRIST_ENCODER = 21;
+    public static final int WRIST_ROLLERS = 22;
     
     public static final int CLAW_ROLLERS = 16;
     public static final int CLAW_WRIST = 17;
     
-
+    public static final int LIGHTS_SUPERSTRUCTURE = 0;
 }
