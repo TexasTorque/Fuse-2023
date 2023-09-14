@@ -22,19 +22,23 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
     public static class ArmPose {
         private static final double TELESCOPE_TOLERANCE = .5,
-                ROTARY_TOLERANCE = Units.degreesToRadians(5);
+                ROTARY_TOLERANCE = Units.degreesToRadians(5), WRIST_TOLERANCE = .1;
 
-        public final double telescopePose;
+        public final double telescopePose, wristPose;
         public final Rotation2d rotaryPose;
 
-        public ArmPose(final double telescopePose, final Rotation2d rotaryPose) {
+        public ArmPose(final double telescopePose, final Rotation2d rotaryPose,
+                final double wristPose) {
             this.telescopePose = telescopePose;
             this.rotaryPose = rotaryPose;
+            this.wristPose = wristPose;
         }
 
-        public boolean atPose(final double telescopeReal, final Rotation2d rotaryReal) {
+        public boolean atPose(final double telescopeReal, final Rotation2d rotaryReal,
+                final double wristReal) {
             return Math.abs(telescopeReal - telescopePose) < TELESCOPE_TOLERANCE
-                    && Math.abs(rotaryReal.minus(rotaryPose).getRadians()) < ROTARY_TOLERANCE;
+                    && Math.abs(rotaryReal.minus(rotaryPose).getRadians()) < ROTARY_TOLERANCE
+                    && Math.abs(wristReal - wristPose) < WRIST_TOLERANCE;
         }
     }
 
@@ -58,26 +62,26 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     */
     public static enum State {
         HIGH_FORWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(40)),
-            new ArmPose(0, Rotation2d.fromDegrees(40))), 
+            new ArmPose(0, Rotation2d.fromDegrees(40), 0),
+            new ArmPose(0, Rotation2d.fromDegrees(40), 0)), 
         MID_FORWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(5)),
-            new ArmPose(0, Rotation2d.fromDegrees(5))),
+            new ArmPose(0, Rotation2d.fromDegrees(5), 0),
+            new ArmPose(0, Rotation2d.fromDegrees(5), 0)),
         HIGH_BACKWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(40)),
-            new ArmPose(0, Rotation2d.fromDegrees(40))), 
+            new ArmPose(0, Rotation2d.fromDegrees(40), 0),
+            new ArmPose(0, Rotation2d.fromDegrees(40), 0)), 
         MID_BACKWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(5)),
-            new ArmPose(0, Rotation2d.fromDegrees(5))),
+            new ArmPose(0, Rotation2d.fromDegrees(5), 0),
+            new ArmPose(0, Rotation2d.fromDegrees(5), 0)),
         INTAKE_FORWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(215)),
-            new ArmPose(0, Rotation2d.fromDegrees(215))),
+            new ArmPose(0, Rotation2d.fromDegrees(215), 0),
+            new ArmPose(0, Rotation2d.fromDegrees(215), 0)),
         INTAKE_BACKWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(280)),
-            new ArmPose(0, Rotation2d.fromDegrees(280))),
+            new ArmPose(0, Rotation2d.fromDegrees(280), 0),
+            new ArmPose(0, Rotation2d.fromDegrees(280), 0)),
         STOW(
-            new ArmPose(0, Rotation2d.fromDegrees(225)),
-            new ArmPose(0, Rotation2d.fromDegrees(225))), ;
+            new ArmPose(0, Rotation2d.fromDegrees(225), 0),
+            new ArmPose(0, Rotation2d.fromDegrees(225), 0));
         // @formatter:on
 
         public final ArmPose cubePose, conePose;
@@ -100,7 +104,8 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         }
     }
 
-    private final double ROTARY_ENCODER_OFFSET = .03681546, TELESCOPE_MIN = 0, TELESCOPE_MAX = 50;
+    private final double ROTARY_ENCODER_OFFSET = .03681546, TELESCOPE_MIN = 0, TELESCOPE_MAX = 50,
+            WRIST_OFFSET = 0;
 
     private final TorqueNEO rotary, telescope, wrist;
     private final PIDController rotatePID, telescopePID, wristPID;
@@ -109,7 +114,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     private final AbsoluteEncoder telescopeEncoder, wristEncoder;
 
     private Rotation2d currentRotaryPose;
-    private double currentTelescopePose;
+    private double currentTelescopePose, currentWristPose;
     private State state;
 
     public Arm() {
@@ -167,25 +172,25 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
         SmartDashboard.putString("arm::state", state.toString());
 
-        double offsetRotaryPose = state.get().rotaryPose.getDegrees();
+        double offsetDesiredRotaryPose = state.get().rotaryPose.getDegrees();
 
-        if (290 <= offsetRotaryPose && offsetRotaryPose <= 360)
-            offsetRotaryPose -= 360;
-        else if (235 <= offsetRotaryPose && offsetRotaryPose <= 290)
-            offsetRotaryPose = 235;
+        if (290 <= offsetDesiredRotaryPose && offsetDesiredRotaryPose <= 360)
+            offsetDesiredRotaryPose -= 360;
+        else if (235 <= offsetDesiredRotaryPose && offsetDesiredRotaryPose <= 290)
+            offsetDesiredRotaryPose = 235;
 
-        double offsetCurrentPose = currentRotaryPose.getDegrees();
+        double offsetCurrentRotaryPose = currentRotaryPose.getDegrees();
 
-        if (290 <= offsetCurrentPose && offsetCurrentPose <= 360)
-            offsetCurrentPose -= 360;
+        if (290 <= offsetCurrentRotaryPose && offsetCurrentRotaryPose <= 360)
+            offsetCurrentRotaryPose -= 360;
 
-        SmartDashboard.putNumber("arm::offsetCurrentPose", offsetCurrentPose);
+        SmartDashboard.putNumber("arm::offsetCurrentRotaryPose", offsetCurrentRotaryPose);
 
-        SmartDashboard.putNumber("arm::offsetRotaryPose", offsetRotaryPose);
+        SmartDashboard.putNumber("arm::offsetRotaryDesiredPose", offsetDesiredRotaryPose);
 
         double rotaryVolts =
-                TorqueMath.constrain(rotatePID.calculate(Math.toRadians(offsetCurrentPose),
-                        Math.toRadians(offsetRotaryPose)), 12);
+                TorqueMath.constrain(rotatePID.calculate(Math.toRadians(offsetCurrentRotaryPose),
+                        Math.toRadians(offsetDesiredRotaryPose)), 12);
 
         SmartDashboard.putNumber("arm::rotaryVolts", rotaryVolts);
 
@@ -207,7 +212,12 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     }
 
     private void updateWrist() {
-        
+        currentWristPose = wristEncoder.getPosition() - WRIST_OFFSET;
+
+        SmartDashboard.putNumber("arm::currentWristPose", currentWristPose);
+
+        double pidVolts = wristPID.calculate(currentWristPose, state.get().wristPose);
+        wrist.setVolts(pidVolts);
     }
 
     public static synchronized final Arm getInstance() {
