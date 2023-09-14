@@ -7,7 +7,7 @@
 package org.texastorque;
 
 import org.texastorque.subsystems.Arm;
-import org.texastorque.subsystems.Wrist;
+import org.texastorque.subsystems.Intake;
 import org.texastorque.subsystems.Drivebase;
 import org.texastorque.torquelib.base.TorqueInput;
 import org.texastorque.torquelib.control.TorqueBoolSupplier;
@@ -22,7 +22,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     private final static double DEADBAND = 0.125;
 
-    private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, intake, gamePieceModeToggle, runIntake, runOuttake;
+    private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, groundIntake,
+            gamePieceModeToggle, runIntake, runOuttake, shiftArmDirection;
 
     private Input() {
         driver = new TorqueController(0, .001);
@@ -34,7 +35,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         high = new TorqueClickSupplier(operator::isYButtonDown);
         mid = new TorqueClickSupplier(operator::isBButtonDown);
         stow = new TorqueClickSupplier(operator::isAButtonDown);
-        intake = new TorqueClickSupplier(operator::isXButtonDown);
+        groundIntake = new TorqueBoolSupplier(operator::isDPADDownDown);
+        shiftArmDirection = new TorqueToggleSupplier(operator::isLeftBumperDown);
 
         runIntake = new TorqueBoolSupplier(operator::isRightTriggerDown);
         runOuttake = new TorqueBoolSupplier(operator::isLeftTriggerDown);
@@ -45,7 +47,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     public void update() {
         updateDrivebase();
         updateArm();
-        updateWrist();
+        updateIntake();
     }
 
     private void updateDrivebase() {
@@ -57,25 +59,34 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         final double yVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftXAxis(), DEADBAND)
                 * Drivebase.MAX_VELOCITY;
 
-        final double rotationVelocity = TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
-                * Drivebase.MAX_ANGULAR_VELOCITY;
+        final double rotationVelocity =
+                TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
+                        * Drivebase.MAX_ANGULAR_VELOCITY;
 
         drivebase.inputSpeeds = new TorqueSwerveSpeeds(xVelocity, yVelocity, rotationVelocity);
     }
 
     public void updateArm() {
-        high.onTrue(() -> arm.setState(Arm.State.HIGH));
-        mid.onTrue(() -> arm.setState(Arm.State.MID));
+        high.onTrue(() -> arm.setState(
+                shiftArmDirection.get() ? Arm.State.HIGH_FORWARDS : Arm.State.HIGH_BACKWARDS));
+        mid.onTrue(() -> arm.setState(
+                shiftArmDirection.get() ? Arm.State.MID_FORWARDS : Arm.State.MID_BACKWARDS));
         stow.onTrue(() -> arm.setState(Arm.State.STOW));
-        intake.onTrue(() -> arm.setState(Arm.State.INTAKE_FORWARD));
+
+        groundIntake.onTrue(() -> arm.setState(
+                shiftArmDirection.get() ? Arm.State.INTAKE_FORWARDS : Arm.State.INTAKE_BACKWARDS));
+
+        arm.tempTeleVolts = operator.getLeftYAxis() * 3;
     }
 
-    public void updateWrist() {
-        runIntake.onTrue(() -> wrist.setState(Wrist.State.INTAKE));
-        runOuttake.onTrue(() -> wrist.setState(Wrist.State.OUTTAKE));
+    public void updateIntake() {
+        groundIntake.onTrue(() -> intake.setState(Intake.State.INTAKE));
 
-        gamePieceModeToggle.onTrueOrFalse(() -> wrist.setGamePieceMode(Wrist.GamePiece.CONE),
-        () -> wrist.setGamePieceMode(Wrist.GamePiece.CUBE));
+        runIntake.onTrue(() -> intake.setState(Intake.State.INTAKE));
+        runOuttake.onTrue(() -> intake.setState(Intake.State.OUTTAKE));
+
+        gamePieceModeToggle.onTrueOrFalse(() -> intake.setGamePieceMode(Intake.GamePiece.CONE),
+                () -> intake.setGamePieceMode(Intake.GamePiece.CUBE));
     }
 
     public static final synchronized Input getInstance() {

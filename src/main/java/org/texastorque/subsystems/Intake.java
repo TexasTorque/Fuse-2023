@@ -5,18 +5,16 @@ import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.motors.TorqueNEO;
 
-public class Wrist extends TorqueSubsystem {
-    private static volatile Wrist instance;
+
+public class Intake extends TorqueSubsystem {
+    private static volatile Intake instance;
 
     public static enum GamePiece {
-        CUBE,
-        CONE;
+        CUBE, CONE;
     }
 
     public static enum State {
-        OFF(0),
-        INTAKE(1),
-        OUTTAKE(-1);
+        OFF(0), INTAKE(1), OUTTAKE(-1);
 
         public final double rollerSpeed;
 
@@ -33,7 +31,7 @@ public class Wrist extends TorqueSubsystem {
     private State state;
     private GamePiece gamePieceMode;
 
-    public Wrist() {
+    public Intake() {
         rollers = new TorqueNEO(Ports.WRIST_ROLLERS);
         rollers.setVoltageCompensation(12.6);
         rollers.setBreakMode(false);
@@ -58,15 +56,16 @@ public class Wrist extends TorqueSubsystem {
     }
 
     @Override
-    public void initialize(TorqueMode mode) {
-    }
+    public void initialize(TorqueMode mode) {}
 
     @Override
     public void update(TorqueMode mode) {
         rollers.setVolts(state.getRollerSpeed());
+
+        state = State.OFF;
     }
 
-    public static synchronized final Wrist getInstance() {
-        return instance == null ? instance = new Wrist() : instance;
+    public static synchronized final Intake getInstance() {
+        return instance == null ? instance = new Intake() : instance;
     }
 };

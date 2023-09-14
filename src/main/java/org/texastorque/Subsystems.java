@@ -6,5 +6,5 @@ public interface Subsystems {
     public final Drivebase drivebase = Drivebase.getInstance();
     public final Arm arm = Arm.getInstance();
     public final Lights lights = Lights.getInstance();
-    public final Wrist wrist = Wrist.getInstance();
+    public final Intake intake = Intake.getInstance();
 }
