@@ -1,5 +1,6 @@
 package org.texastorque.subsystems;
 
+import org.texastorque.Debug;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.base.TorqueMode;
@@ -44,11 +45,11 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
     /* @formatter:off
     *
-    *                    90
+    *                    90°
     *                     ↑
-    *                0 ←  * → 180
+    *                0° ←  * → 180°
     *     HARDSTOP: 290 / ↓ \ HARDSTOP: 235
-    *                    270
+    *                    270°
     *
     *                   ___
     *                  |...|
@@ -62,25 +63,18 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     */
     public static enum State {
         HIGH_FORWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(40), 0),
             new ArmPose(0, Rotation2d.fromDegrees(40), 0)), 
         MID_FORWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(5), 0),
             new ArmPose(0, Rotation2d.fromDegrees(5), 0)),
         HIGH_BACKWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(40), 0),
             new ArmPose(0, Rotation2d.fromDegrees(40), 0)), 
         MID_BACKWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(5), 0),
             new ArmPose(0, Rotation2d.fromDegrees(5), 0)),
         INTAKE_FORWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(215), 0),
             new ArmPose(0, Rotation2d.fromDegrees(215), 0)),
         INTAKE_BACKWARDS(
-            new ArmPose(0, Rotation2d.fromDegrees(280), 0),
             new ArmPose(0, Rotation2d.fromDegrees(280), 0)),
         STOW(
-            new ArmPose(0, Rotation2d.fromDegrees(225), 0),
             new ArmPose(0, Rotation2d.fromDegrees(225), 0));
         // @formatter:on
 
@@ -157,67 +151,90 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     }
 
     @Override
-    public void initialize(TorqueMode mode) {}
+    public void initialize(TorqueMode mode) {
+    }
 
     @Override
     public void update(TorqueMode mode) {
+        Debug.log("state", state.toString());
         updateRotary();
         updateTelescope();
         updateWrist();
     }
 
+    public static final double MAX_ROTARY_VOLTS = 10;
+
+    // DEBUG
+    public double tempRotVolts = 0;
+
     private void updateRotary() {
-        currentRotaryPose = Rotation2d.fromRadians(
-                TorqueMath.constrain0to2PI(rotaryEncoder.getPosition() - ROTARY_ENCODER_OFFSET));
+        currentRotaryPose = Rotation2d
+                .fromRadians(TorqueMath.constrain0to2PI(rotaryEncoder.getPosition() - ROTARY_ENCODER_OFFSET));
 
-        SmartDashboard.putString("arm::state", state.toString());
+        double currentDegrees = currentRotaryPose.getDegrees();
+        if (290 <= currentDegrees && currentDegrees <= 360)
+            currentDegrees -= 360;
 
-        double offsetDesiredRotaryPose = state.get().rotaryPose.getDegrees();
+        double wantedDegrees = state.get().rotaryPose.getDegrees();
 
-        if (290 <= offsetDesiredRotaryPose && offsetDesiredRotaryPose <= 360)
-            offsetDesiredRotaryPose -= 360;
-        else if (235 <= offsetDesiredRotaryPose && offsetDesiredRotaryPose <= 290)
-            offsetDesiredRotaryPose = 235;
+        if (290 <= wantedDegrees && wantedDegrees <= 360)
+            wantedDegrees -= 360;
+        else if (235 <= wantedDegrees && wantedDegrees <= 290)
+            wantedDegrees = 235;
 
-        double offsetCurrentRotaryPose = currentRotaryPose.getDegrees();
+        Debug.log("current rotary degrees", currentDegrees);
+        Debug.log("wanted rotary degrees", wantedDegrees);
 
-        if (290 <= offsetCurrentRotaryPose && offsetCurrentRotaryPose <= 360)
-            offsetCurrentRotaryPose -= 360;
+        double rotaryVolts = TorqueMath.constrain(rotatePID.calculate(Math.toRadians(currentDegrees),
+                Math.toRadians(wantedDegrees)), MAX_ROTARY_VOLTS);
 
-        SmartDashboard.putNumber("arm::offsetCurrentRotaryPose", offsetCurrentRotaryPose);
+        // DEBUG
+        rotaryVolts = tempRotVolts;
 
-        SmartDashboard.putNumber("arm::offsetRotaryDesiredPose", offsetDesiredRotaryPose);
-
-        double rotaryVolts =
-                TorqueMath.constrain(rotatePID.calculate(Math.toRadians(offsetCurrentRotaryPose),
-                        Math.toRadians(offsetDesiredRotaryPose)), 12);
-
-        SmartDashboard.putNumber("arm::rotaryVolts", rotaryVolts);
+        Debug.log("rotaryVolts", rotaryVolts);
 
         // rotary.setVolts(rotaryVolts);
     }
 
+    // DEBUG
     public double tempTeleVolts = 0;
 
     private void updateTelescope() {
         currentTelescopePose = telescopeEncoder.getPosition();
-        double pidVolts = telescopePID.calculate(currentTelescopePose, state.get().telescopePose);
-        double telescopeVolts = TorqueMath.linearConstraint(pidVolts, currentTelescopePose,
-                TELESCOPE_MIN, TELESCOPE_MAX);
+        Debug.log("current telescope pose", currentTelescopePose);
 
-        SmartDashboard.putNumber("arm::currentTelescopePose", currentTelescopePose);
-        SmartDashboard.putNumber("arm::tempTeleVolts", tempTeleVolts);
+        double wantedPose = state.get().telescopePose;
+        wantedPose = TorqueMath.constrain(wantedPose, TELESCOPE_MIN, TELESCOPE_MAX);
 
-        telescope.setVolts(tempTeleVolts);
+        double volts = telescopePID.calculate(currentTelescopePose, wantedPose);
+
+        volts = TorqueMath.linearConstraint(volts, currentTelescopePose, TELESCOPE_MIN, TELESCOPE_MAX);
+
+        // DEBUG
+        volts = tempTeleVolts;
+
+        Debug.log("telescope volts", volts);
+
+        telescope.setVolts(volts);
     }
+
+    private static final double MAX_WRIST_VOLTS = 5;
+
+    // DEBUG
+    public double tempWristVolts = 0;
 
     private void updateWrist() {
         currentWristPose = wristEncoder.getPosition() - WRIST_OFFSET;
 
-        SmartDashboard.putNumber("arm::currentWristPose", currentWristPose);
+        Debug.log("current wrist potatoes", currentWristPose);
 
-        double pidVolts = wristPID.calculate(currentWristPose, state.get().wristPose);
-        wrist.setVolts(pidVolts);
+        double volts = wristPID.calculate(currentWristPose, state.get().wristPose);
+        volts = TorqueMath.constrain(volts, MAX_WRIST_VOLTS);
+
+        // DEBUG
+        volts = tempWristVolts;
+
+        wrist.setVolts(volts);
     }
 
     public static synchronized final Arm getInstance() {

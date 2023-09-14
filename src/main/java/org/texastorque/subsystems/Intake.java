@@ -5,7 +5,6 @@ import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.motors.TorqueNEO;
 
-
 public class Intake extends TorqueSubsystem {
     private static volatile Intake instance;
 
@@ -14,7 +13,7 @@ public class Intake extends TorqueSubsystem {
     }
 
     public static enum State {
-        OFF(0), INTAKE(1), OUTTAKE(-1);
+        OFF(0), INTAKE(6), OUTTAKE(-6);
 
         public final double rollerSpeed;
 
@@ -56,7 +55,8 @@ public class Intake extends TorqueSubsystem {
     }
 
     @Override
-    public void initialize(TorqueMode mode) {}
+    public void initialize(TorqueMode mode) {
+    }
 
     @Override
     public void update(TorqueMode mode) {

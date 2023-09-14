@@ -46,7 +46,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     public void update() {
         updateDrivebase();
-        updateArm();
+        // updateArm();
+        updateArmDebug();
         updateIntake();
     }
 
@@ -59,9 +60,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         final double yVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftXAxis(), DEADBAND)
                 * Drivebase.MAX_VELOCITY;
 
-        final double rotationVelocity =
-                TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
-                        * Drivebase.MAX_ANGULAR_VELOCITY;
+        final double rotationVelocity = TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
+                * Drivebase.MAX_ANGULAR_VELOCITY;
 
         drivebase.inputSpeeds = new TorqueSwerveSpeeds(xVelocity, yVelocity, rotationVelocity);
     }
@@ -73,10 +73,24 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
                 shiftArmDirection.get() ? Arm.State.MID_FORWARDS : Arm.State.MID_BACKWARDS));
         stow.onTrue(() -> arm.setState(Arm.State.STOW));
 
-        groundIntake.onTrue(() -> arm.setState(
-                shiftArmDirection.get() ? Arm.State.INTAKE_FORWARDS : Arm.State.INTAKE_BACKWARDS));
+        groundIntake.onTrue(
+                () -> arm.setState(shiftArmDirection.get() ? Arm.State.INTAKE_FORWARDS : Arm.State.INTAKE_BACKWARDS));
+    }
 
-        arm.tempTeleVolts = operator.getLeftYAxis() * 3;
+    private TorqueController debugController = new TorqueController(2);
+
+    public void updateArmDebug() {
+        arm.tempRotVolts = debugController.getLeftYAxis() * 3;
+
+        arm.tempWristVolts = debugController.getLeftYAxis() * 3;
+
+        if (debugController.getDPADUp())
+            arm.tempTeleVolts = 3;
+        else if (debugController.getDPADDown())
+            arm.tempTeleVolts = -3;
+        else
+            arm.tempTeleVolts = 0;
+
     }
 
     public void updateIntake() {
