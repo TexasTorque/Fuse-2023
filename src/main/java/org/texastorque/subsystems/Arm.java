@@ -8,19 +8,18 @@ import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.motors.TorqueNEO;
 import org.texastorque.torquelib.sensors.TorqueCANCoder;
 import org.texastorque.torquelib.util.TorqueMath;
+
 import com.ctre.phoenix.sensors.CANCoderConfiguration;
 import com.ctre.phoenix.sensors.SensorInitializationStrategy;
 import com.ctre.phoenix.sensors.SensorTimeBase;
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.SparkMaxAbsoluteEncoder.Type;
+
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Arm extends TorqueSubsystem implements Subsystems {
-    private static volatile Arm instance;
-
     public static class ArmPose {
         private static final double TELESCOPE_TOLERANCE = .5,
                 ROTARY_TOLERANCE = Units.degreesToRadians(5), WRIST_TOLERANCE = .1;
@@ -98,18 +97,37 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         }
     }
 
+    private static volatile Arm instance;
+
+    public static final double MAX_ROTARY_VOLTS = 10;
+
+    private static final double MAX_WRIST_VOLTS = 5;
+    public static synchronized final Arm getInstance() {
+        return instance == null ? instance = new Arm() : instance;
+    }
     private final double ROTARY_ENCODER_OFFSET = .03681546, TELESCOPE_MIN = 0, TELESCOPE_MAX = 50,
             WRIST_OFFSET = 0;
-
     private final TorqueNEO rotary, telescope, wrist;
     private final PIDController rotatePID, telescopePID, wristPID;
+
     private final TorqueCANCoder rotaryEncoder;
     private final CANCoderConfiguration cancoderConfig;
     private final AbsoluteEncoder telescopeEncoder, wristEncoder;
 
     private Rotation2d currentRotaryPose;
+
     private double currentTelescopePose, currentWristPose;
+
     private State state;
+
+    // DEBUG
+    public double tempRotVolts = 0;
+
+    // DEBUG
+    public double tempTeleVolts = 0;
+
+    // DEBUG
+    public double tempWristVolts = 0;
 
     public Arm() {
         rotary = new TorqueNEO(Ports.ARM_ROTARY);
@@ -162,25 +180,19 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         updateWrist();
     }
 
-    public static final double MAX_ROTARY_VOLTS = 10;
-
-    // DEBUG
-    public double tempRotVolts = 0;
-
     private void updateRotary() {
         currentRotaryPose = Rotation2d
                 .fromRadians(TorqueMath.constrain0to2PI(rotaryEncoder.getPosition() - ROTARY_ENCODER_OFFSET));
 
         double currentDegrees = currentRotaryPose.getDegrees();
-        if (290 <= currentDegrees && currentDegrees <= 360)
-            currentDegrees -= 360;
+
+        if (290 <= currentDegrees && currentDegrees <= 360) currentDegrees -= 360;
 
         double wantedDegrees = state.get().rotaryPose.getDegrees();
 
-        if (290 <= wantedDegrees && wantedDegrees <= 360)
-            wantedDegrees -= 360;
-        else if (235 <= wantedDegrees && wantedDegrees <= 290)
-            wantedDegrees = 235;
+        if (290 <= wantedDegrees && wantedDegrees <= 360) wantedDegrees -= 360;
+
+        else if (235 <= wantedDegrees && wantedDegrees <= 290) wantedDegrees = 235;
 
         Debug.log("current rotary degrees", currentDegrees);
         Debug.log("wanted rotary degrees", wantedDegrees);
@@ -195,9 +207,6 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
         // rotary.setVolts(rotaryVolts);
     }
-
-    // DEBUG
-    public double tempTeleVolts = 0;
 
     private void updateTelescope() {
         currentTelescopePose = telescopeEncoder.getPosition();
@@ -218,11 +227,6 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         telescope.setVolts(volts);
     }
 
-    private static final double MAX_WRIST_VOLTS = 5;
-
-    // DEBUG
-    public double tempWristVolts = 0;
-
     private void updateWrist() {
         currentWristPose = wristEncoder.getPosition() - WRIST_OFFSET;
 
@@ -235,9 +239,5 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         volts = tempWristVolts;
 
         wrist.setVolts(volts);
-    }
-
-    public static synchronized final Arm getInstance() {
-        return instance == null ? instance = new Arm() : instance;
     }
 }

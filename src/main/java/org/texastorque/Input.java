@@ -7,8 +7,8 @@
 package org.texastorque;
 
 import org.texastorque.subsystems.Arm;
-import org.texastorque.subsystems.Intake;
 import org.texastorque.subsystems.Drivebase;
+import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.base.TorqueInput;
 import org.texastorque.torquelib.control.TorqueBoolSupplier;
 import org.texastorque.torquelib.control.TorqueClickSupplier;
@@ -22,8 +22,14 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     private final static double DEADBAND = 0.125;
 
+    public static final synchronized Input getInstance() {
+        return instance == null ? instance = new Input() : instance;
+    }
+
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, groundIntake,
             gamePieceModeToggle, runIntake, runOuttake, shiftArmDirection;
+
+    private TorqueController debugController = new TorqueController(2);
 
     private Input() {
         driver = new TorqueController(0, .001);
@@ -51,21 +57,6 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         updateIntake();
     }
 
-    private void updateDrivebase() {
-        resetGyro.onTrue(() -> drivebase.resetGyro());
-        xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
-
-        final double xVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftYAxis(), DEADBAND)
-                * Drivebase.MAX_VELOCITY;
-        final double yVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftXAxis(), DEADBAND)
-                * Drivebase.MAX_VELOCITY;
-
-        final double rotationVelocity = TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
-                * Drivebase.MAX_ANGULAR_VELOCITY;
-
-        drivebase.inputSpeeds = new TorqueSwerveSpeeds(xVelocity, yVelocity, rotationVelocity);
-    }
-
     public void updateArm() {
         high.onTrue(() -> arm.setState(
                 shiftArmDirection.get() ? Arm.State.HIGH_FORWARDS : Arm.State.HIGH_BACKWARDS));
@@ -77,10 +68,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
                 () -> arm.setState(shiftArmDirection.get() ? Arm.State.INTAKE_FORWARDS : Arm.State.INTAKE_BACKWARDS));
     }
 
-    private TorqueController debugController = new TorqueController(2);
-
     public void updateArmDebug() {
-        arm.tempRotVolts = debugController.getLeftYAxis() * 3;
+        arm.tempRotVolts = debugController.getRightYAxis() * 3;
 
         arm.tempWristVolts = debugController.getLeftYAxis() * 3;
 
@@ -103,7 +92,18 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
                 () -> intake.setGamePieceMode(Intake.GamePiece.CUBE));
     }
 
-    public static final synchronized Input getInstance() {
-        return instance == null ? instance = new Input() : instance;
+    private void updateDrivebase() {
+        resetGyro.onTrue(() -> drivebase.resetGyro());
+        xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
+
+        final double xVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftYAxis(), DEADBAND)
+                * Drivebase.MAX_VELOCITY;
+        final double yVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftXAxis(), DEADBAND)
+                * Drivebase.MAX_VELOCITY;
+
+        final double rotationVelocity = TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
+                * Drivebase.MAX_ANGULAR_VELOCITY;
+
+        drivebase.inputSpeeds = new TorqueSwerveSpeeds(xVelocity, yVelocity, rotationVelocity);
     }
 }
