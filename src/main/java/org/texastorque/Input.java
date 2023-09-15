@@ -58,6 +58,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     public void updateArm() {
+        arm.debugMode = false;
+
         high.onTrue(() -> arm.setState(
                 shiftArmDirection.get() ? Arm.State.HIGH_FORWARDS : Arm.State.HIGH_BACKWARDS));
         mid.onTrue(() -> arm.setState(
@@ -69,17 +71,18 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     public void updateArmDebug() {
-        arm.tempRotVolts = debugController.getRightYAxis() * 3;
+        arm.debugMode = true;
 
-        arm.tempWristVolts = debugController.getLeftYAxis() * 3;
+        arm.overrideRotary = debugController.getRightYAxis() * 3;
+
+        arm.overrideTele = debugController.getLeftYAxis() * 3;
 
         if (debugController.getDPADUp())
-            arm.tempTeleVolts = 3;
+            arm.overrideWrist = 3;
         else if (debugController.getDPADDown())
-            arm.tempTeleVolts = -3;
+            arm.overrideWrist = -3;
         else
-            arm.tempTeleVolts = 0;
-
+            arm.overrideWrist = 0;
     }
 
     public void updateIntake() {

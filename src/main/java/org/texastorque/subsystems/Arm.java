@@ -120,14 +120,8 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
     private State state;
 
-    // DEBUG
-    public double tempRotVolts = 0;
-
-    // DEBUG
-    public double tempTeleVolts = 0;
-
-    // DEBUG
-    public double tempWristVolts = 0;
+    public boolean debugMode = false;
+    public double overrideRotary = 0, overrideTele = 0, overrideWrist = 0;
 
     public Arm() {
         rotary = new TorqueNEO(Ports.ARM_ROTARY);
@@ -178,6 +172,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         updateRotary();
         updateTelescope();
         updateWrist();
+        debugMode = false;
     }
 
     private void updateRotary() {
@@ -197,15 +192,14 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         Debug.log("current rotary degrees", currentDegrees);
         Debug.log("wanted rotary degrees", wantedDegrees);
 
-        double rotaryVolts = TorqueMath.constrain(rotatePID.calculate(Math.toRadians(currentDegrees),
-                Math.toRadians(wantedDegrees)), MAX_ROTARY_VOLTS);
+        double volts =  rotatePID.calculate(Math.toRadians(currentDegrees), Math.toRadians(wantedDegrees));
+        volts = TorqueMath.constrain(volts, MAX_ROTARY_VOLTS);
 
-        // DEBUG
-        rotaryVolts = tempRotVolts;
+        if (debugMode) volts = overrideRotary;
 
-        Debug.log("rotaryVolts", rotaryVolts);
+        Debug.log("rotaryVolts", volts);
 
-        // rotary.setVolts(rotaryVolts);
+        rotary.setVolts(volts);
     }
 
     private void updateTelescope() {
@@ -219,8 +213,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
         volts = TorqueMath.linearConstraint(volts, currentTelescopePose, TELESCOPE_MIN, TELESCOPE_MAX);
 
-        // DEBUG
-        volts = tempTeleVolts;
+        if (debugMode) volts = overrideTele;
 
         Debug.log("telescope volts", volts);
 
@@ -230,13 +223,14 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     private void updateWrist() {
         currentWristPose = wristEncoder.getPosition() - WRIST_OFFSET;
 
-        Debug.log("current wrist potatoes", currentWristPose);
+        Debug.log("current wrist clicks", currentWristPose);
 
         double volts = wristPID.calculate(currentWristPose, state.get().wristPose);
         volts = TorqueMath.constrain(volts, MAX_WRIST_VOLTS);
 
-        // DEBUG
-        volts = tempWristVolts;
+        if (debugMode) volts = overrideTele;
+
+        Debug.log("wrist volts", volts);
 
         wrist.setVolts(volts);
     }
