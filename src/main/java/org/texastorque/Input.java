@@ -73,9 +73,9 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
         arm.overrideTele = debugController.getLeftYAxis() * 3;
 
-        if (debugController.getDPADUp())
+        if (debugController.isDPADUpDown())
             arm.overrideWrist = 3;
-        else if (debugController.getDPADDown())
+        else if (debugController.isDPADDownDown())
             arm.overrideWrist = -3;
         else
             arm.overrideWrist = 0;
