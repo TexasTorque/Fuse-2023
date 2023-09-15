@@ -3,17 +3,16 @@ package org.texastorque.subsystems;
 import org.texastorque.Ports;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
+import org.texastorque.torquelib.control.TorqueRequestableTimeout;
 import org.texastorque.torquelib.motors.TorqueNEO;
 
 public class Intake extends TorqueSubsystem {
-    private static volatile Intake instance;
-
     public static enum GamePiece {
         CUBE, CONE;
     }
 
     public static enum State {
-        OFF(0), INTAKE(6), OUTTAKE(-6);
+        OFF(0), INTAKE(6), OUTTAKE(-6), CURRENT_SPIKE(6);
 
         public final double rollerSpeed;
 
@@ -26,9 +25,19 @@ public class Intake extends TorqueSubsystem {
         }
     }
 
+    private static volatile Intake instance;
+
+    private static final double SPIKE_CURRENT = 15.0;
+    public static synchronized final Intake getInstance() {
+        return instance == null ? instance = new Intake() : instance;
+    }
     private final TorqueNEO rollers;
+
     private State state;
+
     private GamePiece gamePieceMode;
+    private boolean hasSpiked = false;
+    private final TorqueRequestableTimeout spikeTimeout = new TorqueRequestableTimeout();
 
     public Intake() {
         rollers = new TorqueNEO(Ports.WRIST_ROLLERS);
@@ -60,12 +69,16 @@ public class Intake extends TorqueSubsystem {
 
     @Override
     public void update(TorqueMode mode) {
+        if (state == State.CURRENT_SPIKE) {
+            if (!spikeTimeout.get() && rollers.getCurrent() >= SPIKE_CURRENT) {
+                state = State.OFF;
+            }
+        } else {
+            spikeTimeout.set(1.0);
+        }
+
         rollers.setVolts(state.getRollerSpeed());
 
         state = State.OFF;
-    }
-
-    public static synchronized final Intake getInstance() {
-        return instance == null ? instance = new Intake() : instance;
     }
 };

@@ -21,8 +21,6 @@ public final class Ports {
     public static final int WRIST = 20;
     public static final int WRIST_ROLLERS = 22;
 
-    public static final int CLAW_ROLLERS = 16;
-    public static final int CLAW_WRIST = 17;
-
+  
     public static final int LIGHTS_SUPERSTRUCTURE = 0;
 }
