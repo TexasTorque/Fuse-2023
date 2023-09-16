@@ -77,7 +77,7 @@ public class Intake extends TorqueSubsystem {
             spikeTimeout.set(1.0);
         }
 
-        rollers.setVolts(state.getRollerSpeed());
+        // rollers.setVolts(state.getRollerSpeed());
 
         state = State.OFF;
     }
