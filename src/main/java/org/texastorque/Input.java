@@ -12,6 +12,7 @@ import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.base.TorqueInput;
 import org.texastorque.torquelib.control.TorqueBoolSupplier;
 import org.texastorque.torquelib.control.TorqueClickSupplier;
+import org.texastorque.torquelib.control.TorqueRequestableTimeout;
 import org.texastorque.torquelib.control.TorqueToggleSupplier;
 import org.texastorque.torquelib.sensors.TorqueController;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
@@ -29,9 +30,14 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, gamePieceModeToggle, runIntake, runOuttake,
             shiftArmDirection, ground;
 
+    private final TorqueRequestableTimeout driverTimeout, operatorTimeout;
+
     private Input() {
         driver = new TorqueController(0, .001);
         operator = new TorqueController(1);
+
+        driverTimeout = new TorqueRequestableTimeout();
+        operatorTimeout = new TorqueRequestableTimeout();
 
         xFactor = new TorqueToggleSupplier(driver::isXButtonDown);
         resetGyro = new TorqueClickSupplier(driver::isRightCenterButtonPressed);
@@ -39,20 +45,23 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         high = new TorqueClickSupplier(operator::isYButtonDown);
         mid = new TorqueClickSupplier(operator::isBButtonDown);
         stow = new TorqueClickSupplier(operator::isAButtonDown);
-        ground = new TorqueClickSupplier(operator::isDPADDownDown);
+        ground = new TorqueClickSupplier(() -> operator.isDPADDownDown() || operator.isXButtonDown());
 
-        shiftArmDirection = new TorqueToggleSupplier(operator::isLeftBumperDown);
+        shiftArmDirection = new TorqueToggleSupplier(operator::isRightBumperDown);
 
         runIntake = new TorqueBoolSupplier(() -> operator.isRightTriggerDown() || operator.isDPADDownDown());
         runOuttake = new TorqueBoolSupplier(operator::isLeftTriggerDown);
 
-        gamePieceModeToggle = new TorqueToggleSupplier(operator::isRightBumperDown);
+        gamePieceModeToggle = new TorqueToggleSupplier(operator::isLeftBumperDown);
     }
 
     public void update() {
         updateDrivebase();
         updateArm();
         updateIntake();
+
+        operator.setRumble(operatorTimeout.get());
+        driver.setRumble(driverTimeout.get());
     }
 
     public void updateArm() {
@@ -65,11 +74,23 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     public void updateIntake() {
-        runIntake.onTrue(() -> intake.setState(Intake.State.INTAKE));
-        runOuttake.onTrue(() -> intake.setState(Intake.State.OUTTAKE));
+        runIntake.onTrue(() -> intake.setDesiredState(Intake.State.CURRENT_SPIKE));
+        runOuttake.onTrue(() -> intake.setDesiredState(Intake.State.OUTTAKE));
 
         gamePieceModeToggle.onTrueOrFalse(() -> intake.setGamePieceMode(Intake.GamePiece.CONE),
                 () -> intake.setGamePieceMode(Intake.GamePiece.CUBE));
+    }
+
+    public boolean getArmShift() {
+        return shiftArmDirection.get();
+    }
+
+    public void setOperatorRumbleFor(final double duration) {
+        operatorTimeout.set(duration);
+    }
+
+    public void setDriverRumbleFor(final double duration) {
+        driverTimeout.set(duration);
     }
 
     private void updateDrivebase() {

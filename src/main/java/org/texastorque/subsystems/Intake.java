@@ -1,5 +1,7 @@
 package org.texastorque.subsystems;
 
+import org.texastorque.Debug;
+import org.texastorque.Input;
 import org.texastorque.Ports;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
@@ -12,7 +14,7 @@ public class Intake extends TorqueSubsystem {
     }
 
     public static enum State {
-        OFF(0), INTAKE(6), OUTTAKE(-6), CURRENT_SPIKE(6);
+        OFF(0), INTAKE(-6), OUTTAKE(6), CURRENT_SPIKE(-6), HOLD_PIECE(-.5);
 
         public final double rollerSpeed;
 
@@ -27,13 +29,15 @@ public class Intake extends TorqueSubsystem {
 
     private static volatile Intake instance;
 
-    private static final double SPIKE_CURRENT = 15.0;
+    private static final double SPIKE_CURRENT = 8;
+
     public static synchronized final Intake getInstance() {
         return instance == null ? instance = new Intake() : instance;
     }
+
     private final TorqueNEO rollers;
 
-    private State state;
+    private State desiredState, activeState;
 
     private GamePiece gamePieceMode;
     private boolean hasSpiked = false;
@@ -42,13 +46,15 @@ public class Intake extends TorqueSubsystem {
     public Intake() {
         rollers = new TorqueNEO(Ports.WRIST_ROLLERS);
         rollers.setVoltageCompensation(12.6);
+        rollers.setCurrentLimit(10);
         rollers.setBreakMode(false);
-        state = State.OFF;
+        desiredState = State.OFF;
+        activeState = State.OFF;
         gamePieceMode = GamePiece.CONE;
     }
 
-    public void setState(State state) {
-        this.state = state;
+    public void setDesiredState(State state) {
+        this.desiredState = state;
     }
 
     public boolean isConeMode() {
@@ -69,16 +75,28 @@ public class Intake extends TorqueSubsystem {
 
     @Override
     public void update(TorqueMode mode) {
-        if (state == State.CURRENT_SPIKE) {
+        Debug.log("rollers current", rollers.getCurrent());
+        Debug.log("intakeDesiredState", desiredState.toString());
+        Debug.log("intakeActiveState", activeState.toString());
+
+        if (desiredState == State.CURRENT_SPIKE || activeState == State.HOLD_PIECE && desiredState != State.OUTTAKE) {
+            // The spike timeout is because there will be a current spike when the motor
+            // starts moving so it waits a second for the current to stabalize down
             if (!spikeTimeout.get() && rollers.getCurrent() >= SPIKE_CURRENT) {
-                state = State.OFF;
+                activeState = State.HOLD_PIECE;
+                Input.getInstance().setDriverRumbleFor(.2);
+                Input.getInstance().setOperatorRumbleFor(.2);
+                hasSpiked = true;
             }
         } else {
             spikeTimeout.set(1.0);
+            hasSpiked = false;
         }
 
-        // rollers.setVolts(state.getRollerSpeed());
+        activeState = hasSpiked ? State.HOLD_PIECE : desiredState;
 
-        state = State.OFF;
+        rollers.setVolts(activeState.getRollerSpeed());
+
+        desiredState = State.OFF;
     }
 };

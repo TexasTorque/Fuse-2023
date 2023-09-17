@@ -1,6 +1,7 @@
 package org.texastorque.subsystems;
 
 import org.texastorque.Debug;
+import org.texastorque.Input;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.base.TorqueMode;
@@ -169,6 +170,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     @Override
     public void update(TorqueMode mode) {
         Debug.log("state", state.toString());
+        Debug.log("shift", Input.getInstance().getArmShift());
         updateRotary();
         updateTelescope();
         updateWrist();
@@ -200,7 +202,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
         Debug.log("rotaryVolts", volts);
 
-        rotary.setVolts(volts);
+        // rotary.setVolts(volts);
     }
 
     private void updateTelescope() {
@@ -217,7 +219,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         Debug.log("Telescope Volts", volts);
         Debug.log("Telescope Current", telescope.getCurrent());
 
-        telescope.setVolts(volts);
+        // telescope.setVolts(volts);
     }
 
     private void updateWrist() {
