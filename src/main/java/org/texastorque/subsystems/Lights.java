@@ -7,10 +7,14 @@
 package org.texastorque.subsystems;
 
 import java.util.function.Supplier;
+
+import org.texastorque.Input;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
+import org.texastorque.torquelib.util.TorqueUtil;
+
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.util.Color;
@@ -30,6 +34,29 @@ public final class Lights extends TorqueSubsystem implements Subsystems {
         }
     }
 
+    public static class Blink extends LightAction {
+        private final Supplier<Color> color1, color2;
+        private final double hertz;
+
+        public Blink(final Supplier<Color> color1, final double hertz) {
+            this(color1, () -> Color.kBlack, hertz);
+        }
+
+        public Blink(final Supplier<Color> color1, final Supplier<Color> color2, final double hertz) {
+            this.color1 = color1;
+            this.color2 = color2;
+            this.hertz = hertz;
+        }
+
+        @Override
+        public void run(AddressableLEDBuffer buff) {
+            final double timestamp = TorqueUtil.time();
+            final boolean on = (Math.floor(timestamp * hertz) % 2 == 1);
+            for (int i = 0; i < buff.getLength(); i++)
+                buff.setLED(i, on ? color1.get() : color2.get());
+        }
+    }
+
     private static abstract class LightAction {
         public abstract void run(AddressableLEDBuffer buff);
     }
@@ -46,7 +73,8 @@ public final class Lights extends TorqueSubsystem implements Subsystems {
 
     private final AddressableLEDBuffer buff;
 
-    private LightAction solidPurple = new Solid(() -> Color.kPurple), solidYellow = new Solid(() -> Color.kYellow);
+    private LightAction solidPurple = new Solid(() -> Color.kPurple), solidYellow = new Solid(() -> Color.kYellow),
+            blinkPurple = new Blink(() -> Color.kPurple, 6), blinkYellow = new Blink(() -> Color.kYellow, 6);
 
     private Lights() {
         superstructureLEDs = new AddressableLED(Ports.LIGHTS_SUPERSTRUCTURE);
@@ -66,7 +94,8 @@ public final class Lights extends TorqueSubsystem implements Subsystems {
     }
 
     public final LightAction getColor(final TorqueMode mode) {
-        return intake.isConeMode() ? solidYellow : solidPurple;
+        return intake.isConeMode() ? Input.getInstance().isArmShift() ? blinkYellow : solidYellow
+                : Input.getInstance().isArmShift() ? blinkPurple : solidPurple;
     }
 
     @Override

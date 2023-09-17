@@ -37,6 +37,9 @@ public final class Debug implements Subsystems {
                         "Color when false", Color.kPurple.toHexString()))
                 .withPosition(7, 2).withSize(4, 4);
 
+        dashboard.addBoolean("ARM SHIFT", Input.getInstance()::isArmShift)
+                .withPosition(7, 2).withSize(4, 4);
+
         dashboard.addDouble("TIME", () -> DriverStation.getMatchTime()).withPosition(0, 0)
                 .withSize(7, 4);
     }

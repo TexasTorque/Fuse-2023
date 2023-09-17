@@ -14,7 +14,7 @@ public class Intake extends TorqueSubsystem {
     }
 
     public static enum State {
-        OFF(0), INTAKE(-6), OUTTAKE(6), CURRENT_SPIKE(-6), HOLD_PIECE(-.5);
+        OFF(0), INTAKE(-12), OUTTAKE(12), CURRENT_SPIKE(-12), HOLD_PIECE(-.5);
 
         public final double rollerSpeed;
 

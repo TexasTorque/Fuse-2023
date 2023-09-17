@@ -45,7 +45,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         high = new TorqueClickSupplier(operator::isYButtonDown);
         mid = new TorqueClickSupplier(operator::isBButtonDown);
         stow = new TorqueClickSupplier(operator::isAButtonDown);
-        ground = new TorqueClickSupplier(() -> operator.isDPADDownDown() || operator.isXButtonDown());
+        ground = new TorqueClickSupplier(() -> operator.isDPADDownDown());
 
         shiftArmDirection = new TorqueToggleSupplier(operator::isRightBumperDown);
 
@@ -65,12 +65,12 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     public void updateArm() {
-        high.onTrue(() -> arm.setState(shiftArmDirection.get() ? Arm.State.HIGH_FORWARDS : Arm.State.HIGH_BACKWARDS));
-        mid.onTrue(() -> arm.setState(shiftArmDirection.get() ? Arm.State.MID_FORWARDS : Arm.State.MID_BACKWARDS));
-        stow.onTrue(() -> arm.setState(Arm.State.STOW));
+        high.onTrue(() -> arm.setDesiredState(Arm.State.HIGH));
+        mid.onTrue(() -> arm.setDesiredState(Arm.State.MID));
+        stow.onTrue(() -> arm.setDesiredState(Arm.State.STOW));
+        ground.onTrue(() -> arm.setDesiredState(Arm.State.INTAKE));
 
-        ground.onTrue(
-                () -> arm.setState(shiftArmDirection.get() ? Arm.State.INTAKE_FORWARDS : Arm.State.INTAKE_BACKWARDS));
+        // shiftArmDirection.onTrue();
     }
 
     public void updateIntake() {
@@ -81,7 +81,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
                 () -> intake.setGamePieceMode(Intake.GamePiece.CUBE));
     }
 
-    public boolean getArmShift() {
+    public boolean isArmShift() {
         return shiftArmDirection.get();
     }
 
