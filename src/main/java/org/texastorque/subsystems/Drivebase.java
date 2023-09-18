@@ -120,8 +120,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
-        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, 6.2662988528 + Math.PI, config);
-        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, -6.277036696 + Math.PI, config);
+        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, -2.90077720631102, config);
+        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 2.004908837378025, config);
         bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, -.607455164194107, config);
         br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, 1.4542108476, config);
 

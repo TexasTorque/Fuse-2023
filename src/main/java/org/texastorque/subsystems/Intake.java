@@ -14,22 +14,25 @@ public class Intake extends TorqueSubsystem {
     }
 
     public static enum State {
-        OFF(-2), INTAKE(-12), OUTTAKE(12);
+        OFF(-2), INTAKE(-5, -12), OUTTAKE(12);
 
-        public final double rollerSpeed;
+        public final double cubeSpeed, coneSpeed;
 
-        private State(final double rollerSpeed) {
-            this.rollerSpeed = rollerSpeed;
+        private State(final double cubeSpeed, final double coneSpeed) {
+            this.cubeSpeed = cubeSpeed;
+            this.coneSpeed = coneSpeed;
         }
 
-        public double getRollerSpeed() {
-            return rollerSpeed;
+        private State(final double both) {
+            this(both, both);
+        }
+
+        public double getCubeSpeed() {
+            return Intake.getInstance().isCubeMode() ? cubeSpeed : coneSpeed;
         }
     }
 
     private static volatile Intake instance;
-
-    private static final double SPIKE_CURRENT = 15;
 
     public static synchronized final Intake getInstance() {
         return instance == null ? instance = new Intake() : instance;
@@ -77,7 +80,7 @@ public class Intake extends TorqueSubsystem {
         Debug.log("rollers current", rollers.getCurrent());
 
         if (desiredState == State.INTAKE) {
-            if (!spikeTimeout.get() && rollers.getCurrent() >= SPIKE_CURRENT) {
+            if (!spikeTimeout.get() && rollers.getCurrent() >= (isConeMode() ? 15 : 8)) {
                 Input.getInstance().setDriverRumbleFor(.2);
                 Input.getInstance().setOperatorRumbleFor(.2);
             }
@@ -87,7 +90,7 @@ public class Intake extends TorqueSubsystem {
 
         activeState = desiredState;
 
-        rollers.setVolts(activeState.getRollerSpeed());
+        rollers.setVolts(activeState.getCubeSpeed());
 
         desiredState = State.OFF;
     }
