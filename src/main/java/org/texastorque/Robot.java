@@ -1,7 +1,7 @@
 package org.texastorque;
 
 import org.texastorque.auto.AutoManager;
-import org.texastorque.torquelib.base.*;
+import org.texastorque.torquelib.base.TorqueRobotBase;
 
 public final class Robot extends TorqueRobotBase implements Subsystems {
     public Robot() {
@@ -10,5 +10,7 @@ public final class Robot extends TorqueRobotBase implements Subsystems {
         addSubsystem(arm);
         addSubsystem(lights);
         addSubsystem(intake);
+
+        Debug.initDashboard();
     }
 }

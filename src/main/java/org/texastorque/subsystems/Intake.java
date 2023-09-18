@@ -14,7 +14,7 @@ public class Intake extends TorqueSubsystem {
     }
 
     public static enum State {
-        OFF(0), INTAKE(-12), OUTTAKE(12), CURRENT_SPIKE(-12), HOLD_PIECE(-.5);
+        OFF(-2), INTAKE(-12), OUTTAKE(12), CURRENT_SPIKE(-12), HOLD_PIECE(-.5);
 
         public final double rollerSpeed;
 
@@ -29,7 +29,7 @@ public class Intake extends TorqueSubsystem {
 
     private static volatile Intake instance;
 
-    private static final double SPIKE_CURRENT = 8;
+    private static final double SPIKE_CURRENT = 15;
 
     public static synchronized final Intake getInstance() {
         return instance == null ? instance = new Intake() : instance;
@@ -83,7 +83,7 @@ public class Intake extends TorqueSubsystem {
             // The spike timeout is because there will be a current spike when the motor
             // starts moving so it waits a second for the current to stabalize down
             if (!spikeTimeout.get() && rollers.getCurrent() >= SPIKE_CURRENT) {
-                activeState = State.HOLD_PIECE;
+                // activeState = State.HOLD_PIECE;
                 Input.getInstance().setDriverRumbleFor(.2);
                 Input.getInstance().setOperatorRumbleFor(.2);
                 hasSpiked = true;
@@ -93,7 +93,11 @@ public class Intake extends TorqueSubsystem {
             hasSpiked = false;
         }
 
-        activeState = hasSpiked ? State.HOLD_PIECE : desiredState;
+        if (hasSpiked)
+            desiredState = State.OFF;
+
+        // activeState = hasSpiked ? State.HOLD_PIECE : desiredState;
+        activeState = desiredState;
 
         rollers.setVolts(activeState.getRollerSpeed());
 
