@@ -14,7 +14,7 @@ public class Intake extends TorqueSubsystem {
     }
 
     public static enum State {
-        OFF(-2), INTAKE(-12), OUTTAKE(12), CURRENT_SPIKE(-12), HOLD_PIECE(-.5);
+        OFF(-2), INTAKE(-12), OUTTAKE(12);
 
         public final double rollerSpeed;
 
@@ -40,7 +40,6 @@ public class Intake extends TorqueSubsystem {
     private State desiredState, activeState;
 
     private GamePiece gamePieceMode;
-    private boolean hasSpiked = false;
     private final TorqueRequestableTimeout spikeTimeout = new TorqueRequestableTimeout();
 
     public Intake() {
@@ -76,27 +75,16 @@ public class Intake extends TorqueSubsystem {
     @Override
     public void update(TorqueMode mode) {
         Debug.log("rollers current", rollers.getCurrent());
-        Debug.log("intakeDesiredState", desiredState.toString());
-        Debug.log("intakeActiveState", activeState.toString());
 
-        if (desiredState == State.CURRENT_SPIKE || activeState == State.HOLD_PIECE && desiredState != State.OUTTAKE) {
-            // The spike timeout is because there will be a current spike when the motor
-            // starts moving so it waits a second for the current to stabalize down
+        if (desiredState == State.INTAKE) {
             if (!spikeTimeout.get() && rollers.getCurrent() >= SPIKE_CURRENT) {
-                // activeState = State.HOLD_PIECE;
                 Input.getInstance().setDriverRumbleFor(.2);
                 Input.getInstance().setOperatorRumbleFor(.2);
-                hasSpiked = true;
             }
         } else {
             spikeTimeout.set(1.0);
-            hasSpiked = false;
         }
 
-        if (hasSpiked)
-            desiredState = State.OFF;
-
-        // activeState = hasSpiked ? State.HOLD_PIECE : desiredState;
         activeState = desiredState;
 
         rollers.setVolts(activeState.getRollerSpeed());

@@ -128,6 +128,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         rotary.addFollower(Ports.ARM_ROTARY_2, false);
         rotary.setVoltageCompensation(12.6);
         rotary.setBreakMode(true);
+        rotary.setCurrentLimit(80);
         rotary.burnFlash();
         rotatePID = new PIDController(7, 0, 0);
         rotaryEncoder = new TorqueCANCoder(Ports.ARM_ROTARY_ENCODER);

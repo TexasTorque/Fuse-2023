@@ -64,19 +64,16 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         operator.setRumble(operatorTimeout.get());
         driver.setRumble(driverTimeout.get());
     }
-
     public void updateArm() {
         high.onTrue(() -> arm.setDesiredState(Arm.State.HIGH));
         mid.onTrue(() -> arm.setDesiredState(Arm.State.MID));
         stow.onTrue(() -> arm.setDesiredState(Arm.State.STOW));
         ground.onTrue(() -> arm.setDesiredState(Arm.State.INTAKE));
         highStow.onTrue(() -> arm.setDesiredState(Arm.State.HIGH_STOW));
-
-        // shiftArmDirection.onTrue();
     }
 
     public void updateIntake() {
-        runIntake.onTrue(() -> intake.setDesiredState(Intake.State.CURRENT_SPIKE));
+        runIntake.onTrue(() -> intake.setDesiredState(Intake.State.INTAKE));
         runOuttake.onTrue(() -> intake.setDesiredState(Intake.State.OUTTAKE));
 
         gamePieceModeToggle.onTrueOrFalse(() -> intake.setGamePieceMode(Intake.GamePiece.CONE),
