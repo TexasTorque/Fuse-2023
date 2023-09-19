@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.texastorque.auto.AutoManager;
 import org.texastorque.torquelib.util.TorqueUtil;
+
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
@@ -21,6 +22,7 @@ public final class Debug implements Subsystems {
 
     private static final Map<String, Double> numbers = new HashMap<>();
     private static final Map<String, String> strings = new HashMap<>();
+    private static final Map<String, Boolean> bools = new HashMap<>();
 
     public static void initDashboard() {
         Shuffleboard.update();
@@ -35,7 +37,8 @@ public final class Debug implements Subsystems {
                         "Color when false", Color.kPurple.toHexString()))
                 .withPosition(7, 2).withSize(4, 4);
 
-
+        dashboard.addBoolean("ARM SHIFT", Input.getInstance()::isArmShift)
+                .withPosition(7, 2).withSize(4, 4);
 
         dashboard.addDouble("TIME", () -> DriverStation.getMatchTime()).withPosition(0, 0)
                 .withSize(7, 4);
@@ -56,6 +59,15 @@ public final class Debug implements Subsystems {
                 getTab().addString(key, () -> strings.get(key));
             }
             strings.put(key, string);
+        }
+    }
+
+    public static void log(final String key, final boolean bool) {
+        if (DO_LOGGING) {
+            if (!bools.containsKey(key)) {
+                getTab().addBoolean(key, () -> bools.get(key));
+            }
+            bools.put(key, bool);
         }
     }
 

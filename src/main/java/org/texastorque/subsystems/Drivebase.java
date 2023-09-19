@@ -17,6 +17,7 @@ import org.texastorque.torquelib.sensors.TorqueNavXGyro;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022.SwerveConfig;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
+
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
@@ -54,38 +55,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(0));
 
-    public static SwerveModulePosition invertSwerveModuleDistance(final SwerveModulePosition pose) {
-        return new SwerveModulePosition(-pose.distanceMeters, pose.angle);
-    }
-
-    private State state = State.ROBOT_RELATIVE;
-
-    private State requestedState = State.ROBOT_RELATIVE;
-
-    private final Translation2d LOC_FL = new Translation2d(LENGTH / 2, -WIDTH / 2),
-            LOC_FR = new Translation2d(LENGTH / 2, WIDTH / 2),
-            LOC_BL = new Translation2d(-LENGTH / 2, -WIDTH / 2),
-            LOC_BR = new Translation2d(-LENGTH / 2, WIDTH / 2);
-
-    private final SwerveDriveKinematics kinematics;
-    private final SwerveDrivePoseEstimator poseEstimator;
-
-    public final Field2d fieldMap = new Field2d();
-
-    private final TorqueSwerveModule2022 fl, fr, bl, br;
-
-    private final TorqueNavXGyro gyro = TorqueNavXGyro.getInstance();
-    private double lastRotationRadians;
-
-    private final PIDController teleopOmegaController = new PIDController(.25 * Math.PI, 0, 0);
-
-    private SwerveModuleState[] swerveStates;
-
-    public TorqueSwerveSpeeds inputSpeeds = new TorqueSwerveSpeeds(0, 0, 0);
-
-    public double requestedRotation = 0;
-
-    public boolean isRotationLocked = true;
     /**
      * Standard deviations of model states. Increase these numbers to trust your
      * model's state
@@ -104,6 +73,42 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
      */
     private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
 
+    public static SwerveModulePosition invertSwerveModuleDistance(final SwerveModulePosition pose) {
+        return new SwerveModulePosition(-pose.distanceMeters, pose.angle);
+    }
+
+    public static synchronized final Drivebase getInstance() {
+        return instance == null ? instance = new Drivebase() : instance;
+    }
+
+    private State state = State.ROBOT_RELATIVE;
+    private State requestedState = State.ROBOT_RELATIVE;
+
+    private final Translation2d LOC_FL = new Translation2d(LENGTH / 2, -WIDTH / 2),
+            LOC_FR = new Translation2d(LENGTH / 2, WIDTH / 2),
+            LOC_BL = new Translation2d(-LENGTH / 2, -WIDTH / 2),
+            LOC_BR = new Translation2d(-LENGTH / 2, WIDTH / 2);
+
+    private final SwerveDriveKinematics kinematics;
+
+    private final SwerveDrivePoseEstimator poseEstimator;
+    public final Field2d fieldMap = new Field2d();
+
+    private final TorqueSwerveModule2022 fl, fr, bl, br;
+
+    private final TorqueNavXGyro gyro = TorqueNavXGyro.getInstance();
+
+    private double lastRotationRadians;
+
+    private final PIDController teleopOmegaController = new PIDController(.25 * Math.PI, 0, 0);
+
+    private SwerveModuleState[] swerveStates;
+    public TorqueSwerveSpeeds inputSpeeds = new TorqueSwerveSpeeds(0, 0, 0);
+
+    public double requestedRotation = 0;
+
+    public boolean isRotationLocked = true;
+
     private Drivebase() {
         teleopOmegaController.enableContinuousInput(-Math.PI, Math.PI);
         lastRotationRadians = gyro.getRotation2d().getRadians();
@@ -115,8 +120,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
-        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, -2.9452498, config);
-        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 1.978831216692924, config);
+        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, -2.90077720631102, config);
+        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 2.004908837378025, config);
         bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, -.607455164194107, config);
         br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, 1.4542108476, config);
 
@@ -264,9 +269,5 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             inputSpeeds.omegaRadiansPerSecond = omega;
         } else
             lastRotationRadians = realRotationRadians;
-    }
-
-    public static synchronized final Drivebase getInstance() {
-        return instance == null ? instance = new Drivebase() : instance;
     }
 }
