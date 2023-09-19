@@ -28,7 +28,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, gamePieceModeToggle, runIntake, runOuttake,
-            shiftArmDirection, ground, highStow;
+            shiftArmDirection, ground, highStow, doubleSub;
 
     private final TorqueRequestableTimeout driverTimeout, operatorTimeout;
 
@@ -47,10 +47,11 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         stow = new TorqueClickSupplier(operator::isAButtonDown);
         ground = new TorqueClickSupplier(() -> operator.isDPADDownDown());
         highStow = new TorqueClickSupplier(operator::isXButtonDown);
+        doubleSub = new TorqueClickSupplier(operator::isDPADUpDown);
 
         shiftArmDirection = new TorqueToggleSupplier(operator::isRightBumperDown);
 
-        runIntake = new TorqueBoolSupplier(() -> operator.isRightTriggerDown() || operator.isDPADDownDown());
+        runIntake = new TorqueBoolSupplier(() -> operator.isRightTriggerDown() || operator.isDPADDownDown() || operator.isDPADUpDown());
         runOuttake = new TorqueBoolSupplier(operator::isLeftTriggerDown);
 
         gamePieceModeToggle = new TorqueToggleSupplier(operator::isLeftBumperDown);
@@ -64,12 +65,14 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         operator.setRumble(operatorTimeout.get());
         driver.setRumble(driverTimeout.get());
     }
+
     public void updateArm() {
         high.onTrue(() -> arm.setDesiredState(Arm.State.HIGH));
         mid.onTrue(() -> arm.setDesiredState(Arm.State.MID));
         stow.onTrue(() -> arm.setDesiredState(Arm.State.STOW));
         ground.onTrue(() -> arm.setDesiredState(Arm.State.INTAKE));
         highStow.onTrue(() -> arm.setDesiredState(Arm.State.HIGH_STOW));
+        doubleSub.onTrue(() -> arm.setDesiredState(Arm.State.DOUBLE_SUB));
     }
 
     public void updateIntake() {
