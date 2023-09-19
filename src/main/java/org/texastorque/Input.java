@@ -18,6 +18,9 @@ import org.texastorque.torquelib.sensors.TorqueController;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
 import org.texastorque.torquelib.util.TorqueMath;
 
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 public final class Input extends TorqueInput<TorqueController> implements Subsystems {
     private static volatile Input instance;
 
@@ -28,9 +31,15 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, gamePieceModeToggle, runIntake, runOuttake,
-            shiftArmDirection, ground, highStow;
+            shiftArmDirection, ground, highStow, rotateABit;
 
     private final TorqueRequestableTimeout driverTimeout, operatorTimeout;
+
+    private final PIDController rotationPID;
+
+    private boolean rotationLock = false;
+
+    private double lastHeading;
 
     private Input() {
         driver = new TorqueController(0, .001);
@@ -54,6 +63,9 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         runOuttake = new TorqueBoolSupplier(operator::isLeftTriggerDown);
 
         gamePieceModeToggle = new TorqueToggleSupplier(operator::isLeftBumperDown);
+
+        rotationPID = new PIDController(1, 0, 0);
+        rotateABit = new TorqueBoolSupplier(driver::isBButtonDown);
     }
 
     public void update() {
@@ -64,6 +76,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         operator.setRumble(operatorTimeout.get());
         driver.setRumble(driverTimeout.get());
     }
+
     public void updateArm() {
         high.onTrue(() -> arm.setDesiredState(Arm.State.HIGH));
         mid.onTrue(() -> arm.setDesiredState(Arm.State.MID));
@@ -96,13 +109,31 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         resetGyro.onTrue(() -> drivebase.resetGyro());
         xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
 
-        final double xVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftYAxis(), DEADBAND)
+
+        double xVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftYAxis(), DEADBAND)
                 * Drivebase.MAX_VELOCITY;
-        final double yVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftXAxis(), DEADBAND)
+        double yVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftXAxis(), DEADBAND)
                 * Drivebase.MAX_VELOCITY;
 
-        final double rotationVelocity = TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
+        double rotationVelocity = TorqueMath.scaledLinearDeadband(-driver.getRightXAxis(), DEADBAND)
                 * Drivebase.MAX_ANGULAR_VELOCITY;
+
+        if (TorqueMath.toleranced(driver.getLeftXAxis(), DEADBAND)) {
+            rotationVelocity = rotationPID.calculate(drivebase.getGyroAngle(), lastHeading);
+            rotationLock = true;
+        } else {
+            if (!rotateABit.get()) lastHeading = drivebase.getGyroAngle();
+            rotationLock = false;
+        }
+
+        if (rotateABit.get()) {
+            rotationVelocity = rotationPID.calculate(drivebase.getGyroAngle(), lastHeading + 90);
+        }
+
+        SmartDashboard.putNumber("latestHeading", lastHeading);
+        SmartDashboard.putNumber("currentHeading", drivebase.getGyroAngle());
+
+        SmartDashboard.putBoolean("rotationLock", rotationLock);
 
         drivebase.inputSpeeds = new TorqueSwerveSpeeds(xVelocity, yVelocity, rotationVelocity);
     }
