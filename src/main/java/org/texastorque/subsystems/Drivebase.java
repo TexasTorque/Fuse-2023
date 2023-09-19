@@ -6,6 +6,7 @@
  */
 package org.texastorque.subsystems;
 
+import org.texastorque.Debug;
 import org.texastorque.Field;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
@@ -45,6 +46,27 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         private State(final State parent) {
             this.parent = parent == null ? this : parent;
         }
+    }
+
+    public enum SpeedSetting {
+        SLOW(.25), MID(.5), FAST(1.0);
+
+        private static final SpeedSetting[] vals = values();
+
+        public final double speed;
+
+        private SpeedSetting(final double speed) {
+            this.speed = speed;
+        }
+
+        public SpeedSetting shiftUp() {
+            return vals[Math.min((this.ordinal() + 1), vals.length - 1)];
+        }
+
+        public SpeedSetting shiftDown() {
+            return vals[Math.max((this.ordinal() - 1), 0)];
+        }
+
     }
 
     private static volatile Drivebase instance;
@@ -108,6 +130,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public double requestedRotation = 0;
 
     public boolean isRotationLocked = true;
+
+    public SpeedSetting speedSetting = SpeedSetting.FAST;
 
     private Drivebase() {
         teleopOmegaController.enableContinuousInput(-Math.PI, Math.PI);
@@ -183,7 +207,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             xFactor();
         } else {
             if (mode.isTeleop() && state != State.ALIGN) {
-                inputSpeeds = inputSpeeds.times(1);
+                inputSpeeds = inputSpeeds.times(speedSetting.speed);
             }
             if (state == State.FIELD_RELATIVE) {
                 calculateTeleop();
@@ -206,6 +230,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         }
 
         state = state.parent;
+        Debug.log("Speed Shift State", speedSetting.toString());
     }
 
     public void resetPose(final Pose2d pose) {
