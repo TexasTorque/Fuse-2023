@@ -229,7 +229,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     public double getGyroAngle() {
-        return gyro.getHeadingCCW().getRadians();
+        return gyro.getHeadingCCW().getDegrees();
     }
 
     public TorqueCommand setStateCommand(final State state) {
