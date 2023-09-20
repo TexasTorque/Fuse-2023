@@ -1,12 +1,10 @@
 package org.texastorque.auto;
 
-import org.texastorque.torquelib.auto.*;
+import org.texastorque.auto.sequence.AnySide1Taxi;
+import org.texastorque.torquelib.auto.TorqueAutoManager;
 
 public final class AutoManager extends TorqueAutoManager {
     private static volatile AutoManager instance;
-
-    @Override
-    public final void init() {}
 
     /**
      * Get the AutoManager instance
@@ -15,5 +13,10 @@ public final class AutoManager extends TorqueAutoManager {
      */
     public static final synchronized AutoManager getInstance() {
         return instance == null ? instance = new AutoManager() : instance;
+    }
+
+    @Override
+    public final void init() {
+        addSequence(new AnySide1Taxi());
     }
 }

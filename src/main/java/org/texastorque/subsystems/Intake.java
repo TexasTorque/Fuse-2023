@@ -3,6 +3,8 @@ package org.texastorque.subsystems;
 import org.texastorque.Debug;
 import org.texastorque.Input;
 import org.texastorque.Ports;
+import org.texastorque.torquelib.auto.TorqueCommand;
+import org.texastorque.torquelib.auto.commands.TorqueExecute;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.control.TorqueRequestableTimeout;
@@ -27,7 +29,7 @@ public class Intake extends TorqueSubsystem {
             this(both, both);
         }
 
-        public double getCubeSpeed() {
+        public double get() {
             return Intake.getInstance().isCubeMode() ? cubeSpeed : coneSpeed;
         }
     }
@@ -55,7 +57,7 @@ public class Intake extends TorqueSubsystem {
         gamePieceMode = GamePiece.CONE;
     }
 
-    public void setDesiredState(State state) {
+    public void setState(State state) {
         this.desiredState = state;
     }
 
@@ -67,7 +69,7 @@ public class Intake extends TorqueSubsystem {
         return gamePieceMode == GamePiece.CUBE;
     }
 
-    public void setGamePieceMode(GamePiece gamePieceMode) {
+    public void setGamePieceMode(final GamePiece gamePieceMode) {
         this.gamePieceMode = gamePieceMode;
     }
 
@@ -75,12 +77,20 @@ public class Intake extends TorqueSubsystem {
     public void initialize(TorqueMode mode) {
     }
 
+    public TorqueCommand yieldState(final State state) {
+        return new TorqueExecute(() -> setState(state));
+    }
+
+    public TorqueCommand yieldGamePiece(final GamePiece gamePieceMode) {
+        return new TorqueExecute(() -> setGamePieceMode(gamePieceMode));
+    }
+
     @Override
     public void update(TorqueMode mode) {
-        Debug.log("rollers current", rollers.getCurrent());
+        Debug.log("Rollers Current", rollers.getCurrent());
 
         if (desiredState == State.INTAKE) {
-            if (!spikeTimeout.get() && rollers.getCurrent() >= (isConeMode() ? 15 : 8)) {
+            if (!spikeTimeout.get() && rollers.getCurrent() >= (isConeMode() ? 12 : 8)) {
                 Input.getInstance().setDriverRumbleFor(.2);
                 Input.getInstance().setOperatorRumbleFor(.2);
             }
@@ -90,8 +100,9 @@ public class Intake extends TorqueSubsystem {
 
         activeState = desiredState;
 
-        rollers.setVolts(activeState.getCubeSpeed());
+        rollers.setVolts(activeState.get());
 
-        desiredState = State.OFF;
+        if (mode.isTeleop())
+            desiredState = State.OFF;
     }
 };

@@ -70,17 +70,17 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     public void updateArm() {
-        high.onTrue(() -> arm.setDesiredState(Arm.State.HIGH));
-        mid.onTrue(() -> arm.setDesiredState(Arm.State.MID));
-        stow.onTrue(() -> arm.setDesiredState(Arm.State.STOW));
-        ground.onTrue(() -> arm.setDesiredState(Arm.State.INTAKE));
-        highStow.onTrue(() -> arm.setDesiredState(Arm.State.HIGH_STOW));
-        doubleSub.onTrue(() -> arm.setDesiredState(Arm.State.DOUBLE_SUB));
+        high.onTrue(() -> arm.setState(Arm.State.HIGH));
+        mid.onTrue(() -> arm.setState(Arm.State.MID));
+        stow.onTrue(() -> arm.setState(Arm.State.STOW));
+        ground.onTrue(() -> arm.setState(Arm.State.INTAKE));
+        highStow.onTrue(() -> arm.setState(Arm.State.HIGH_STOW));
+        doubleSub.onTrue(() -> arm.setState(Arm.State.DOUBLE_SUB));
     }
 
     public void updateIntake() {
-        runIntake.onTrue(() -> intake.setDesiredState(Intake.State.INTAKE));
-        runOuttake.onTrue(() -> intake.setDesiredState(Intake.State.OUTTAKE));
+        runIntake.onTrue(() -> intake.setState(Intake.State.INTAKE));
+        runOuttake.onTrue(() -> intake.setState(Intake.State.OUTTAKE));
 
         gamePieceModeToggle.onTrueOrFalse(() -> intake.setGamePieceMode(Intake.GamePiece.CONE),
                 () -> intake.setGamePieceMode(Intake.GamePiece.CUBE));
