@@ -178,6 +178,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         mode.onTeleop(() -> {
             isRotationLocked = true;
             state = State.FIELD_RELATIVE;
+            resetGyro();
         });
     }
 
@@ -229,7 +230,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     public void resetPose(final Pose2d pose) {
-        gyro.setOffsetCW(pose.getRotation());
+        // gyro.setOffsetCW(pose.getRotation());
+        poseEstimator.resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
     }
 
     public Pose2d getPose() {

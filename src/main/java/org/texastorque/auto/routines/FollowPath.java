@@ -10,15 +10,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
+
 import com.pathplanner.lib.PathPlanner;
 import com.pathplanner.lib.PathPlannerTrajectory;
 import com.pathplanner.lib.PathPlannerTrajectory.EventMarker;
 import com.pathplanner.lib.PathPlannerTrajectory.PathPlannerState;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.server.PathPlannerServer;
+
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -27,7 +30,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 
-public final class Drive extends TorqueCommand implements Subsystems {
+public final class FollowPath extends TorqueCommand implements Subsystems {
     public static final double MAX_VELOCITY_PATH = 3.5, MAX_ACCELERATION_PATH = 3.5;
 
     private final PIDController xController = new PIDController(3, 0, 0);
@@ -43,17 +46,17 @@ public final class Drive extends TorqueCommand implements Subsystems {
     private final Map<String, TorqueCommand> commands;
     private final List<TorqueCommand> running;
 
-    public Drive(final String name) {
+    public FollowPath(final String name) {
         this(name, MAX_VELOCITY_PATH, MAX_ACCELERATION_PATH);
     }
 
-    public Drive(final String name, final double maxSpeed, final double maxAcceleration) {
+    public FollowPath(final String name, final double maxSpeed, final double maxAcceleration) {
         this(name, new HashMap<String, TorqueCommand>(), maxSpeed, maxAcceleration);
     }
 
-    public Drive(final String name, final Map<String, TorqueCommand> commands, final double maxSpeed,
+    public FollowPath(final String name, final Map<String, TorqueCommand> commands, final double maxSpeed,
             final double maxAcceleration) {
-        omegaController = new PIDController(Math.PI * 2, 0, .0); 
+        omegaController = new PIDController(Math.PI * 2, 0, .0);
 
         xController.setTolerance(0.01);
         yController.setTolerance(0.01);
@@ -94,8 +97,6 @@ public final class Drive extends TorqueCommand implements Subsystems {
     @Override
     protected final void continuous() {
         final double elapsed = timer.get();
-
-        System.out.printf("elapsed auto = %f\n", elapsed);
 
         final PathPlannerState desired = reflect(trajectory.sample(elapsed));
 
