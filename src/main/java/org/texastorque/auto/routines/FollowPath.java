@@ -7,11 +7,12 @@
 package org.texastorque.auto.routines;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.texastorque.Debug;
 import org.texastorque.Subsystems;
+import org.texastorque.auto.EventMap;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
 
@@ -51,7 +52,7 @@ public final class FollowPath extends TorqueCommand implements Subsystems {
     }
 
     public FollowPath(final String name, final double maxSpeed, final double maxAcceleration) {
-        this(name, new HashMap<String, TorqueCommand>(), maxSpeed, maxAcceleration);
+        this(name, EventMap.get(), maxSpeed, maxAcceleration);
     }
 
     public FollowPath(final String name, final Map<String, TorqueCommand> commands, final double maxSpeed,
@@ -91,7 +92,8 @@ public final class FollowPath extends TorqueCommand implements Subsystems {
         running.clear();
 
         final Pose2d startingPose = reflect(trajectory.getInitialState()).poseMeters;
-        drivebase.resetPose(new Pose2d(startingPose.getTranslation(), Rotation2d.fromRadians(Math.PI)));
+        Debug.log("startpose", startingPose.toString());
+        drivebase.resetPose(new Pose2d(startingPose.getTranslation(), Rotation2d.fromRadians(0)));
     }
 
     @Override
@@ -103,7 +105,7 @@ public final class FollowPath extends TorqueCommand implements Subsystems {
         final TorqueSwerveSpeeds speeds = TorqueSwerveSpeeds
                 .fromChassisSpeeds(controller.calculate(drivebase.getPose(), desired));
 
-        drivebase.inputSpeeds = speeds.times(1, 1, 1);
+        drivebase.inputSpeeds = speeds.times(-1, -1, 1);
 
         if (unpassed.size() > 0 && elapsed >= unpassed.get(0).timeSeconds) {
             final EventMarker marker = unpassed.remove(0);

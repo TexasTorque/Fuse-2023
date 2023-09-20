@@ -14,49 +14,12 @@ public final class EventMap implements Subsystems {
     public static Map<String, TorqueCommand> get() {
         final Map<String, TorqueCommand> map = new HashMap<String, TorqueCommand>();
 
-        map.put("intake-down-1", new TorqueExecute(() -> {
+        map.put("intake", new TorqueExecute(() -> {
             arm.setState(Arm.State.INTAKE);
             intake.setState(Intake.State.INTAKE);
         }));
 
-        map.put("stow-1", new TorqueExecute(() -> {
-            arm.setState(Arm.State.STOW);
-            intake.setState(Intake.State.OFF);
-        }));
-
-        map.put("cube-high", new TorqueExecute(() -> {
-            arm.setState(Arm.State.HIGH);
-        }));
-
-        map.put("score-high", new TorqueExecute(() -> {
-            intake.setState(Intake.State.OUTTAKE);
-        }));
-
-        map.put("stow-2", new TorqueExecute(() -> {
-            arm.setState(Arm.State.STOW);
-            intake.setState(Intake.State.OFF);
-        }));
-
-        map.put("intake-down-2", new TorqueExecute(() -> {
-            arm.setState(Arm.State.INTAKE);
-            intake.setState(Intake.State.INTAKE);
-        }));
-
-
-        map.put("stow-2", new TorqueExecute(() -> {
-            arm.setState(Arm.State.STOW);
-            intake.setState(Intake.State.OFF);
-        }));
-
-        map.put("cube-MID", new TorqueExecute(() -> {
-            arm.setState(Arm.State.MID);
-        }));
-
-        map.put("score-mid", new TorqueExecute(() -> {
-            intake.setState(Intake.State.OUTTAKE);
-        }));
-
-        map.put("stow-3", new TorqueExecute(() -> {
+        map.put("stow", new TorqueExecute(() -> {
             arm.setState(Arm.State.STOW);
             intake.setState(Intake.State.OFF);
         }));

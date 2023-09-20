@@ -18,6 +18,7 @@ import org.texastorque.torquelib.sensors.TorqueNavXGyro;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022.SwerveConfig;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
+
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
@@ -72,23 +73,25 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             MAX_VELOCITY = 4.522, MAX_ACCELERATION = 8.958, MAX_ANGULAR_VELOCITY = 2 * Math.PI,
             MAX_ANGULAR_ACCELERATION = 2 * Math.PI, WHEEL_DIAMETER = Units.inchesToMeters(4.0);
 
-    public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(Math.PI));
+    public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(0));
 
     /**
-     * Standard deviations of model states. Increase these numbers to trust your model's state
-     * estimates less. This matrix is in the form [x, y, theta]ᵀ, with units in meters and radians,
+     * Standard deviations of model states. Increase these numbers to trust your
+     * model's state
+     * estimates less. This matrix is in the form [x, y, theta]ᵀ, with units in
+     * meters and radians,
      * then meters.
      */
-    private static final Vector<N3> STATE_STDS =
-            VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+    private static final Vector<N3> STATE_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
     /**
-     * Standard deviations of the vision measurements. Increase these numbers to trust global
-     * measurements from vision less. This matrix is in the form [x, y, theta]ᵀ, with units in
+     * Standard deviations of the vision measurements. Increase these numbers to
+     * trust global
+     * measurements from vision less. This matrix is in the form [x, y, theta]ᵀ,
+     * with units in
      * meters and radians.
      */
-    private static final Vector<N3> VISION_STDS =
-            VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
+    private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
 
     public static SwerveModulePosition invertSwerveModuleDistance(final SwerveModulePosition pose) {
         return new SwerveModulePosition(-pose.distanceMeters, pose.angle);
@@ -178,15 +181,14 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         mode.onTeleop(() -> {
             isRotationLocked = true;
             state = State.FIELD_RELATIVE;
-            resetGyro();
         });
     }
 
     public SwerveModulePosition[] getModulePositions() {
-        return new SwerveModulePosition[] {invertSwerveModuleDistance(fl.getPosition()),
+        return new SwerveModulePosition[] { invertSwerveModuleDistance(fl.getPosition()),
                 invertSwerveModuleDistance(fr.getPosition()),
                 invertSwerveModuleDistance(bl.getPosition()),
-                invertSwerveModuleDistance(br.getPosition())};
+                invertSwerveModuleDistance(br.getPosition()) };
     }
 
     public void convertToFieldRelative() {
@@ -267,9 +269,13 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     private void updateFeedback() {
+        poseEstimator.update(gyro.getHeadingCCW(), getModulePositions());
+
         fieldMap.setRobotPose(DriverStation.getAlliance() == DriverStation.Alliance.Blue
                 ? poseEstimator.getEstimatedPosition()
                 : Field.reflectPosition(poseEstimator.getEstimatedPosition()));
+
+        Debug.log("Drivebase pose", getPose().toString());
     }
 
     private void preseveModulePositions() {
@@ -291,8 +297,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
         if (isRotationLocked && !inputSpeeds.hasRotationalVelocity()
                 && inputSpeeds.hasTranslationalVelocity()) {
-            final double omega =
-                    teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
+            final double omega = teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
             inputSpeeds.omegaRadiansPerSecond = omega;
         } else
             lastRotationRadians = realRotationRadians;

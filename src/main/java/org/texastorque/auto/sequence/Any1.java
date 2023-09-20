@@ -10,21 +10,16 @@ import org.texastorque.Subsystems;
 import org.texastorque.auto.routines.FollowPath;
 import org.texastorque.auto.routines.Score;
 import org.texastorque.subsystems.Arm;
+import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.auto.TorqueSequence;
-import org.texastorque.torquelib.auto.commands.TorqueExecute;
 import org.texastorque.torquelib.auto.commands.TorqueSequenceRunner;
 import org.texastorque.torquelib.auto.commands.TorqueWaitForSeconds;
 
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-
 public final class Any1 extends TorqueSequence implements Subsystems {
     public Any1() {
-        addBlock(
-                new TorqueExecute(() -> drivebase.resetPose(new Pose2d(new Translation2d(1.88, 5), new Rotation2d()))));
+        addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
         addBlock(new TorqueSequenceRunner(new Score(Arm.State.HIGH)));
-        addBlock(new TorqueWaitForSeconds(2));
-        addBlock(new FollowPath("taxi", 1, 1));
+        addBlock(new TorqueWaitForSeconds(1));
+        addBlock(new FollowPath("taxi", 2.5, 2.5));
     }
 }

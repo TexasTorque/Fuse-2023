@@ -18,7 +18,6 @@ public final class Score extends TorqueSequence implements Subsystems {
     }
 
     public Score(final Arm.State armState, final double waitTime) {
-        addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
         addBlock(arm.yieldState(armState));
         addBlock(arm.waitUntilAtState());
         addBlock(new TorqueWaitForSeconds(.5));
