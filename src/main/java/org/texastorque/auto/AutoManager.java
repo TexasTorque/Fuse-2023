@@ -2,7 +2,7 @@ package org.texastorque.auto;
 
 import org.texastorque.auto.sequence.Flat1;
 import org.texastorque.auto.sequence.Flat2;
-import org.texastorque.auto.sequence.Flat3;
+import org.texastorque.auto.sequence.Flat2Line;
 import org.texastorque.auto.sequence.Middle1;
 import org.texastorque.torquelib.auto.TorqueAutoManager;
 
@@ -23,6 +23,7 @@ public final class AutoManager extends TorqueAutoManager {
         addSequence(new Flat1());
         addSequence(new Middle1());
         addSequence(new Flat2());
-        addSequence(new Flat3());
+        // addSequence(new Flat3());
+        addSequence(new Flat2Line());
     }
 }

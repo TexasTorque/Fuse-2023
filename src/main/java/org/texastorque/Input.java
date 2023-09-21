@@ -8,6 +8,8 @@ package org.texastorque;
 
 import org.texastorque.subsystems.Arm;
 import org.texastorque.subsystems.Drivebase;
+import org.texastorque.subsystems.Drivebase.SpeedSequence;
+import org.texastorque.subsystems.Drivebase.SpeedSetting;
 import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.base.TorqueInput;
 import org.texastorque.torquelib.control.TorqueBoolSupplier;
@@ -28,7 +30,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, gamePieceModeToggle, runIntake, runOuttake,
-            shiftArmDirection, ground, highStow, doubleSub, speedShiftUp, speedShiftDown;
+            shiftArmDirection, ground, highStow, doubleSub, speedShiftUp, speedShiftDown, slowlySlowDownClick,
+            slowlySlowDownHold;
 
     private final TorqueRequestableTimeout driverTimeout, operatorTimeout;
 
@@ -43,6 +46,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         resetGyro = new TorqueClickSupplier(driver::isRightCenterButtonPressed);
         speedShiftUp = new TorqueClickSupplier(driver::isRightBumperDown);
         speedShiftDown = new TorqueClickSupplier(driver::isLeftBumperDown);
+        slowlySlowDownClick = new TorqueClickSupplier(driver::isLeftTriggerDown);
+        slowlySlowDownHold = new TorqueBoolSupplier(driver::isLeftTriggerDown);
 
         high = new TorqueClickSupplier(operator::isYButtonDown);
         mid = new TorqueClickSupplier(operator::isBButtonDown);
@@ -76,6 +81,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         ground.onTrue(() -> arm.setState(Arm.State.INTAKE));
         highStow.onTrue(() -> arm.setState(Arm.State.HIGH_STOW));
         doubleSub.onTrue(() -> arm.setState(Arm.State.DOUBLE_SUB));
+
+        arm.setRotaryAdjustment(-operator.getRightYAxis());
     }
 
     public void updateIntake() {
@@ -102,8 +109,24 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         resetGyro.onTrue(() -> drivebase.resetGyro());
         xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
 
-        speedShiftUp.onTrue(() -> drivebase.speedSetting = drivebase.speedSetting.shiftUp());
-        speedShiftDown.onTrue(() -> drivebase.speedSetting = drivebase.speedSetting.shiftDown());
+        // speedShiftUp.onTrue(() -> drivebase.desiredSpeedSetting =
+        // drivebase.desiredSpeedSetting.shiftUp());
+        // speedShiftDown.onTrue(() -> drivebase.desiredSpeedSetting =
+        // drivebase.desiredSpeedSetting.shiftDown());
+
+        // speedShift.onTrueOrFalse(() -> drivebase.speedSetting =
+        // Drivebase.SpeedSetting.MID, () -> drivebase.speedSetting =
+        // Drivebase.SpeedSetting.FAST);
+
+        slowlySlowDownClick.onTrue(() -> {
+            drivebase.speedSequence = new SpeedSequence(Drivebase.SpeedSetting.FAST, Drivebase.SpeedSetting.SLOW, 1);
+        });
+        slowlySlowDownHold.onTrue(() -> {
+            drivebase.speedSetting = SpeedSetting.SEQ;
+        });
+
+        if (!slowlySlowDownClick.get() && !slowlySlowDownHold.get())
+            drivebase.speedSetting = Drivebase.SpeedSetting.FAST;
 
         final double xVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftYAxis(), DEADBAND)
                 * Drivebase.MAX_VELOCITY;

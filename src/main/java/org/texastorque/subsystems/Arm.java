@@ -97,7 +97,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
                 new ArmPose(0, Rotation2d.fromDegrees(135), 0))),
         MOVING_IN(
             new ArmPosePair(
-                new ArmPose(0, Rotation2d.fromDegrees(-1), -.25))
+                new ArmPose(0, Rotation2d.fromDegrees(-1), -.04)) 
         ), 
         DOUBLE_SUB(
             new ArmPosePair(
@@ -137,8 +137,8 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
             TELESCOPE_MIN_POSITION = 0, TELESCOPE_MAX_POSITION = 22.5,
             WRIST_MIN_POSITION = -0.55, WRIST_MAX_POSITION = -0,
             MAX_ROTARY_VOLTS = 12, MAX_TELESCOPE_VOLTS = 14, MAX_WRIST_VOLTS = 10,
-            ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2,
-            ARM_RESTRICTED_MIN = 235, ARM_RESTRICTED_MAX = 290;
+            ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2, TELESCOPE_RATIO = 80 / 63,
+            ARM_RESTRICTED_MAX = 290, ARM_RESTRICTED_MIN = 235;
 
     public static synchronized final Arm getInstance() {
         return instance == null ? instance = new Arm() : instance;
@@ -153,7 +153,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
     private Rotation2d currentRotaryPose;
 
     private double currentTelescopePose, wantedTelescopePose, currentWristPose, wantedWristPose, currentRotaryDegrees,
-            wantedRotaryDegrees, telescopeVelocity, telescopeDelta;
+            wantedRotaryDegrees, telescopeVelocity, telescopeDelta, rotaryAdjustment;
 
     public Arm() {
         super(State.STOW);
@@ -209,6 +209,10 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         return Math.abs(wantedTelescopePose - currentTelescopePose) < TELESCOPE_TOLERANCE;
     }
 
+    public void setRotaryAdjustment(double setpointAdjustment) {
+        rotaryAdjustment = setpointAdjustment;
+    }
+
     @Override
     public void initialize(final TorqueMode mode) {
     }
@@ -242,7 +246,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         if (ARM_RESTRICTED_MAX <= currentRotaryDegrees && currentRotaryDegrees <= 360)
             currentRotaryDegrees -= 360;
 
-        wantedRotaryDegrees = state.get().rotaryPose.getDegrees();
+        wantedRotaryDegrees = state.get().rotaryPose.getDegrees() + rotaryAdjustment * 3;
 
         if (ARM_RESTRICTED_MAX <= wantedRotaryDegrees && wantedRotaryDegrees <= 360)
             wantedRotaryDegrees -= 360;
@@ -260,12 +264,16 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
     }
 
     private void updateTelescope(State state) {
-        currentTelescopePose = telescope.getPosition();
+        currentTelescopePose = telescope.getPosition() * TELESCOPE_RATIO;
         telescopeVelocity = telescope.getVelocity();
         wantedTelescopePose = state.get().telescopePose;
         wantedTelescopePose = TorqueMath.constrain(wantedTelescopePose, TELESCOPE_MIN_POSITION, TELESCOPE_MAX_POSITION);
 
         Debug.log("Current Telescope Pose", currentTelescopePose);
+
+        wantedTelescopePose = state.get().telescopePose * TELESCOPE_RATIO;
+
+        wantedTelescopePose = TorqueMath.constrain(wantedTelescopePose, TELESCOPE_MIN_POSITION, TELESCOPE_MAX_POSITION);
 
         double volts = telescopePID.calculate(currentTelescopePose, wantedTelescopePose);
         volts = TorqueMath.constrain(volts, 6); // this may need to change to be faster
@@ -295,7 +303,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
 
         double volts = wristPID.calculate(currentWristPose, wantedWristPose);
 
-        volts = -TorqueMath.constrain(volts, MAX_WRIST_VOLTS); 
+        volts = -TorqueMath.constrain(volts, MAX_WRIST_VOLTS);
 
         Debug.log("Wrist PID Volts", volts);
 
