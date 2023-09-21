@@ -76,12 +76,12 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             this.initSpeed = initSpeed.speed;
             this.finalSpeed = finalSpeed.speed;
             this.duration = duration;
-            speedDeceleration = (this.finalSpeed - this.initSpeed) / duration;
+            speedDeceleration = (this.initSpeed - this.finalSpeed) / duration;
             startTime = Timer.getFPGATimestamp();
         }
 
         public double get() {
-            return initSpeed - speedDeceleration * (Timer.getFPGATimestamp() - startTime);
+            return Math.max(initSpeed - speedDeceleration * (Timer.getFPGATimestamp() - startTime), finalSpeed);
         }
     }
 
@@ -226,7 +226,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         } else {
             if (mode.isTeleop()) {
                 inputSpeeds = inputSpeeds
-                        .times(speedSetting == SpeedSetting.SEQ ? speedSequence.get() : speedSetting.speed);
+                        .times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
+                                : speedSetting.speed);
             }
             if (state == State.FIELD_RELATIVE) {
                 calculateTeleop();
@@ -250,7 +251,9 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
         state = state.parent;
         Debug.log("Speed Shift State", speedSetting.toString());
-        Debug.log("Speed Shift Value", speedSetting == SpeedSetting.SEQ ? speedSequence.get() : speedSetting.speed);
+        Debug.log("Speed Shift Value",
+                speedSetting == SpeedSetting.SEQ ? speedSequence.get() : speedSetting.speed);
+
     }
 
     public void resetPose(final Pose2d pose) {

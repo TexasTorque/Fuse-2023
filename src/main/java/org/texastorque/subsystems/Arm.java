@@ -96,7 +96,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
                 new ArmPose(0, Rotation2d.fromDegrees(135), 0))),
         MOVING_IN(
             new ArmPosePair(
-                new ArmPose(0, Rotation2d.fromDegrees(-1), -.15)) 
+                new ArmPose(0, Rotation2d.fromDegrees(-1), -.04)) 
         ), 
         DOUBLE_SUB(
             new ArmPosePair(
