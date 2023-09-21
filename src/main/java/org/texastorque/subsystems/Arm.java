@@ -96,7 +96,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
                 new ArmPose(0, Rotation2d.fromDegrees(135), 0))),
         MOVING_IN(
             new ArmPosePair(
-                new ArmPose(0, Rotation2d.fromDegrees(-1), -.25))
+                new ArmPose(0, Rotation2d.fromDegrees(-1), -.15)) 
         ), 
         DOUBLE_SUB(
             new ArmPosePair(
@@ -154,11 +154,9 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     private Rotation2d currentRotaryPose;
 
     private double currentTelescopePose, wantedTelescopePose, currentWristPose, wantedWristPose, currentRotaryDegrees,
-            wantedRotaryDegrees, telescopeVelocity;
+            wantedRotaryDegrees, telescopeVelocity, telescopeDelta, rotaryAdjustment;
 
     private State desiredState;
-
-    double telescopeDelta = 0;
 
     public Arm() {
         rotary = new TorqueNEO(Ports.ARM_ROTARY);
@@ -221,6 +219,10 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         return Math.abs(wantedTelescopePose - currentTelescopePose) < TELESCOPE_TOLERANCE;
     }
 
+    public void setRotaryAdjustment(double setpointAdjustment) {
+        rotaryAdjustment = setpointAdjustment;
+    }
+
     @Override
     public void initialize(TorqueMode mode) {
     }
@@ -254,7 +256,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         if (ARM_RESTRICTED_MAX <= currentRotaryDegrees && currentRotaryDegrees <= 360)
             currentRotaryDegrees -= 360;
 
-        wantedRotaryDegrees = state.get().rotaryPose.getDegrees();
+        wantedRotaryDegrees = state.get().rotaryPose.getDegrees() + rotaryAdjustment * 3;
 
         if (ARM_RESTRICTED_MAX <= wantedRotaryDegrees && wantedRotaryDegrees <= 360)
             wantedRotaryDegrees -= 360;
