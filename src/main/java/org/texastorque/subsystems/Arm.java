@@ -101,7 +101,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         DOUBLE_SUB(
             new ArmPosePair(
                 new ArmPose(0, Rotation2d.fromDegrees(135), -.55),
-                new ArmPose(1.8, Rotation2d.fromDegrees(138), -.45)
+                new ArmPose(1.8, Rotation2d.fromDegrees(138), -.52)
             )
         );
         // @formatter:on
@@ -322,7 +322,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         // Since the wrist needs an additional feedforward, we add one based off what
         // direction the volts are trying to go
         double volts = wristPID.calculate(currentWristPose, wantedWristPose);
-    
+
         // volts = TorqueMath.signum(volts) * Math.max(MIN_WRIST_VOLTS,
         // Math.abs(volts));
 

@@ -16,7 +16,7 @@ public class Middle1 extends TorqueSequence implements Subsystems {
         addBlock(new TorqueSequenceRunner(new Score(Arm.State.HIGH)));
         addBlock(new FollowPath("balance-out", 1.5, 2.5));
         addBlock(new TorqueWaitForSeconds(2));
-        addBlock(new FollowPath("balance-in", 2.5, 3.5));
+        addBlock(new FollowPath("balance-in", 1.5, 2.5));
     }
 
 }

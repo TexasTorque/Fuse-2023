@@ -13,13 +13,15 @@ import org.texastorque.subsystems.Arm;
 import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.auto.TorqueSequence;
 import org.texastorque.torquelib.auto.commands.TorqueSequenceRunner;
-import org.texastorque.torquelib.auto.commands.TorqueWaitForSeconds;
 
-public final class Any1 extends TorqueSequence implements Subsystems {
-    public Any1() {
+public final class Flat3 extends TorqueSequence implements Subsystems {
+    public Flat3() {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
         addBlock(new TorqueSequenceRunner(new Score(Arm.State.HIGH)));
-        addBlock(new TorqueWaitForSeconds(1));
-        addBlock(new FollowPath("taxi", 2.5, 3.5));
+        addBlock(intake.yieldGamePiece(Intake.GamePiece.CUBE));
+        addBlock(new FollowPath("flat1", 2.7, 3.5));
+        addBlock(new TorqueSequenceRunner(new Score(Arm.State.HIGH)));
+        addBlock(new FollowPath("flat2", 2.7, 3.5));
+        addBlock(new TorqueSequenceRunner(new Score(Arm.State.MID)));
     }
 }
