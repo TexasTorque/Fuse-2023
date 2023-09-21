@@ -142,7 +142,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
             TELESCOPE_MIN_POSITION = 0, TELESCOPE_MAX_POSITION = 22.5,
             WRIST_MIN_POSITION = -0.55, WRIST_MAX_POSITION = -0,
             MAX_ROTARY_VOLTS = 12, MAX_TELESCOPE_VOLTS = 14, MAX_WRIST_VOLTS = 10,
-            ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2;
+            ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2, TELESCOPE_RATIO = 80/63;
     private final TorqueNEO rotary, telescope, wrist;
 
     private final PIDController rotatePID, telescopePID, wristPID;
@@ -274,12 +274,12 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     }
 
     private void updateTelescope(State state) {
-        currentTelescopePose = telescope.getPosition();
+        currentTelescopePose = telescope.getPosition() * TELESCOPE_RATIO;
         telescopeVelocity = telescope.getVelocity();
 
         Debug.log("Current Telescope Pose", currentTelescopePose);
 
-        wantedTelescopePose = state.get().telescopePose;
+        wantedTelescopePose = state.get().telescopePose * TELESCOPE_RATIO;
 
         wantedTelescopePose = TorqueMath.constrain(wantedTelescopePose, TELESCOPE_MIN_POSITION, TELESCOPE_MAX_POSITION);
 

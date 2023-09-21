@@ -253,7 +253,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         Debug.log("Speed Shift State", speedSetting.toString());
         Debug.log("Speed Shift Value",
                 speedSetting == SpeedSetting.SEQ ? speedSequence.get() : speedSetting.speed);
-
     }
 
     public void resetPose(final Pose2d pose) {
