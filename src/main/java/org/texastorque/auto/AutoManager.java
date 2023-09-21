@@ -1,6 +1,6 @@
 package org.texastorque.auto;
 
-import org.texastorque.auto.sequence.Any1;
+import org.texastorque.auto.sequence.Flat1;
 import org.texastorque.auto.sequence.Flat2;
 import org.texastorque.auto.sequence.Flat3;
 import org.texastorque.auto.sequence.Middle1;
@@ -20,7 +20,7 @@ public final class AutoManager extends TorqueAutoManager {
 
     @Override
     public final void init() {
-        addSequence(new Any1());
+        addSequence(new Flat1());
         addSequence(new Middle1());
         addSequence(new Flat2());
         addSequence(new Flat3());

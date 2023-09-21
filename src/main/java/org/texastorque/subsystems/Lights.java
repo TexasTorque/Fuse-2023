@@ -8,18 +8,18 @@ package org.texastorque.subsystems;
 
 import java.util.function.Supplier;
 
-import org.texastorque.Input;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.base.TorqueMode;
-import org.texastorque.torquelib.base.TorqueSubsystem;
+import org.texastorque.torquelib.base.TorqueStatelessSubsystem;
 import org.texastorque.torquelib.util.TorqueUtil;
 
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.util.Color;
 
-public final class Lights extends TorqueSubsystem implements Subsystems {
+public final class Lights extends TorqueStatelessSubsystem implements Subsystems {
+
     public static class Solid extends LightAction {
         private final Supplier<Color> color;
 
@@ -94,8 +94,13 @@ public final class Lights extends TorqueSubsystem implements Subsystems {
     }
 
     public final LightAction getColor(final TorqueMode mode) {
-        return intake.isConeMode() ? Input.getInstance().isArmShift() ? blinkYellow : solidYellow
-                : Input.getInstance().isArmShift() ? blinkPurple : solidPurple;
+        if (intake.isConeMode()) {
+            if (intake.isActive()) return blinkYellow;
+            return solidYellow;
+        } else {
+            if (intake.isActive()) return blinkPurple;
+            return solidPurple;
+        }
     }
 
     @Override

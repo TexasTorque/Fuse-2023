@@ -8,6 +8,7 @@ import com.pathplanner.lib.server.PathPlannerServer;
 public final class Robot extends TorqueRobotBase implements Subsystems {
     public Robot() {
         super(Input.getInstance(), AutoManager.getInstance());
+
         addSubsystem(drivebase);
         addSubsystem(arm);
         addSubsystem(lights);
@@ -15,6 +16,5 @@ public final class Robot extends TorqueRobotBase implements Subsystems {
 
         Debug.initDashboard();
         PathPlannerServer.startServer(5811);
-
     }
 }

@@ -7,21 +7,27 @@
 package org.texastorque.auto.sequence;
 
 import org.texastorque.Subsystems;
-import org.texastorque.auto.routines.FollowPath;
-import org.texastorque.auto.routines.Score;
+import org.texastorque.auto.commands.FollowPath;
+import org.texastorque.auto.commands.Score;
 import org.texastorque.subsystems.Arm;
 import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.auto.TorqueSequence;
-import org.texastorque.torquelib.auto.commands.TorqueSequenceRunner;
 
 public final class Flat3 extends TorqueSequence implements Subsystems {
     public Flat3() {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
-        addBlock(new TorqueSequenceRunner(new Score(Arm.State.HIGH)));
+
+        addBlock(new Score(Arm.State.HIGH).command());
+
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CUBE));
-        addBlock(new FollowPath("flat1", 2.7, 3.5));
-        addBlock(new TorqueSequenceRunner(new Score(Arm.State.HIGH)));
-        addBlock(new FollowPath("flat2", 2.7, 3.5));
-        addBlock(new TorqueSequenceRunner(new Score(Arm.State.MID)));
+
+        addBlock(new FollowPath("flat1", 2.5, 3.5));
+
+        addBlock(new Score(Arm.State.HIGH).command());
+
+        addBlock(new FollowPath("flat2", 2.5, 3.5));
+
+        addBlock(new Score(Arm.State.MID).command());
+
     }
 }
