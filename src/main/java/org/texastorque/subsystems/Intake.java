@@ -16,7 +16,7 @@ public class Intake extends TorqueSubsystem {
     }
 
     public static enum State {
-        OFF(-2), INTAKE(-5, -12), OUTTAKE(12);
+        OFF(-3), INTAKE(-5, -12), OUTTAKE(12);
 
         public final double cubeSpeed, coneSpeed;
 
