@@ -11,7 +11,6 @@ import org.texastorque.Field;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.auto.TorqueCommand;
-import org.texastorque.torquelib.auto.TorqueSequence;
 import org.texastorque.torquelib.auto.commands.TorqueContinuous;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
@@ -69,7 +68,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     }
 
-    public static class SpeedSequence extends TorqueSequence {
+    public static class SpeedSequence {
         final double initSpeed, finalSpeed, duration, startTime, speedDeceleration;
 
         // Linearly decreases the speed every second for a duration of time
