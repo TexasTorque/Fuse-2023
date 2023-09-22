@@ -31,7 +31,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, gamePieceModeToggle, runIntake, runOuttake,
             shiftArmDirection, ground, highStow, doubleSub, speedShiftUp, speedShiftDown, slowlySlowDownClick,
-            slowlySlowDownHold;
+            slowlySlowDownHold, singleSub;
 
     private final TorqueRequestableTimeout driverTimeout, operatorTimeout;
 
@@ -55,6 +55,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         ground = new TorqueClickSupplier(() -> operator.isDPADDownDown());
         highStow = new TorqueClickSupplier(operator::isXButtonDown);
         doubleSub = new TorqueClickSupplier(operator::isDPADUpDown);
+        singleSub = new TorqueClickSupplier(() -> operator.isDPADRightDown() || operator.isDPADLeftDown());
 
         shiftArmDirection = new TorqueToggleSupplier(operator::isRightBumperDown);
 
@@ -81,6 +82,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         ground.onTrue(() -> arm.setState(Arm.State.INTAKE));
         highStow.onTrue(() -> arm.setState(Arm.State.HIGH_STOW));
         doubleSub.onTrue(() -> arm.setState(Arm.State.DOUBLE_SUB));
+        singleSub.onTrue(() -> arm.setState(Arm.State.SINGLE_SUB));
 
         arm.setRotaryAdjustment(-operator.getRightYAxis());
     }
@@ -109,24 +111,21 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         resetGyro.onTrue(() -> drivebase.resetGyro());
         xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
 
-        // speedShiftUp.onTrue(() -> drivebase.desiredSpeedSetting =
-        // drivebase.desiredSpeedSetting.shiftUp());
-        // speedShiftDown.onTrue(() -> drivebase.desiredSpeedSetting =
-        // drivebase.desiredSpeedSetting.shiftDown());
+        speedShiftUp.onTrue(() -> drivebase.speedSetting = drivebase.speedSetting.shiftUp());
+        speedShiftDown.onTrue(() -> drivebase.speedSetting = drivebase.speedSetting.shiftDown());
 
-        // speedShift.onTrueOrFalse(() -> drivebase.speedSetting =
-        // Drivebase.SpeedSetting.MID, () -> drivebase.speedSetting =
-        // Drivebase.SpeedSetting.FAST);
+        // speedShift.onTrueOrFalse(() -> drivebase.speedSetting = Drivebase.SpeedSetting.MID,
+        //         () -> drivebase.speedSetting = Drivebase.SpeedSetting.FAST);
 
-        slowlySlowDownClick.onTrue(() -> {
-            drivebase.speedSequence = new SpeedSequence(Drivebase.SpeedSetting.FAST, Drivebase.SpeedSetting.SLOW, 1);
-        });
-        slowlySlowDownHold.onTrue(() -> {
-            drivebase.speedSetting = SpeedSetting.SEQ;
-        });
+        // slowlySlowDownClick.onTrue(() -> {
+        //     drivebase.speedSequence = new SpeedSequence(Drivebase.SpeedSetting.FAST, Drivebase.SpeedSetting.SLOW, 1);
+        // });
+        // slowlySlowDownHold.onTrue(() -> {
+        //     drivebase.speedSetting = SpeedSetting.SEQ;
+        // });
 
-        if (!slowlySlowDownClick.get() && !slowlySlowDownHold.get())
-            drivebase.speedSetting = Drivebase.SpeedSetting.FAST;
+        // if (!slowlySlowDownClick.get() && !slowlySlowDownHold.get())
+        //     drivebase.speedSetting = Drivebase.SpeedSetting.FAST;
 
         final double xVelocity = TorqueMath.scaledLinearDeadband(driver.getLeftYAxis(), DEADBAND)
                 * Drivebase.MAX_VELOCITY;

@@ -91,7 +91,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
                 new ArmPose(9, Rotation2d.fromDegrees(235), -.25))),
         STOW(
             new ArmPosePair(
-                new ArmPose(-.8, Rotation2d.fromDegrees(232), -.04))),
+                new ArmPose(-.8, Rotation2d.fromDegrees(240), 0))),
         HIGH_STOW(
             new ArmPosePair(
                 new ArmPose(0, Rotation2d.fromDegrees(135), 0))),
@@ -101,9 +101,14 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         ), 
         DOUBLE_SUB(
             new ArmPosePair(
-                new ArmPose(0, Rotation2d.fromDegrees(135), -.55),
-                new ArmPose(1.8, Rotation2d.fromDegrees(138), -.52)
+                new ArmPose(0, Rotation2d.fromDegrees(145), -.55),
+                new ArmPose(1.8 / TELESCOPE_RATIO, Rotation2d.fromDegrees(138), -.52)
             )
+        ),
+        SINGLE_SUB(
+            new ArmPosePair(
+                new ArmPose(-.8, Rotation2d.fromDegrees(240), 0),
+                new ArmPose(-.8, Rotation2d.fromDegrees(232), -.08))
         );
         // @formatter:on
 
@@ -134,11 +139,11 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
     private static volatile Arm instance;
 
     private static final double ROTARY_ENCODER_OFFSET = .03681546, WRIST_OFFSET = 0.875,
-            TELESCOPE_MIN_POSITION = 0, TELESCOPE_MAX_POSITION = 22.5,
+            TELESCOPE_MIN_POSITION = 0,
             WRIST_MIN_POSITION = -0.55, WRIST_MAX_POSITION = -0,
             MAX_ROTARY_VOLTS = 12, MAX_TELESCOPE_VOLTS = 14, MAX_WRIST_VOLTS = 10,
-            ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2, TELESCOPE_RATIO = 80 / 63,
-            ARM_RESTRICTED_MAX = 290, ARM_RESTRICTED_MIN = 235;
+            ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2, TELESCOPE_RATIO = 80. / 63.,
+            ARM_RESTRICTED_MAX = 290, ARM_RESTRICTED_MIN = 235, TELESCOPE_MAX_POSITION = 22.5 * TELESCOPE_RATIO;
 
     public static synchronized final Arm getInstance() {
         return instance == null ? instance = new Arm() : instance;
@@ -264,14 +269,12 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
     }
 
     private void updateTelescope(State state) {
-        currentTelescopePose = telescope.getPosition() * TELESCOPE_RATIO;
+        currentTelescopePose = telescope.getPosition();
         telescopeVelocity = telescope.getVelocity();
-        wantedTelescopePose = state.get().telescopePose;
+        wantedTelescopePose = state.get().telescopePose * TELESCOPE_RATIO;
         wantedTelescopePose = TorqueMath.constrain(wantedTelescopePose, TELESCOPE_MIN_POSITION, TELESCOPE_MAX_POSITION);
 
         Debug.log("Current Telescope Pose", currentTelescopePose);
-
-        wantedTelescopePose = state.get().telescopePose * TELESCOPE_RATIO;
 
         wantedTelescopePose = TorqueMath.constrain(wantedTelescopePose, TELESCOPE_MIN_POSITION, TELESCOPE_MAX_POSITION);
 
