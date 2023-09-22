@@ -19,7 +19,6 @@ import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.util.Color;
 
 public final class Lights extends TorqueStatelessSubsystem implements Subsystems {
-
     public static class Solid extends LightAction {
         private final Supplier<Color> color;
 
@@ -57,6 +56,20 @@ public final class Lights extends TorqueStatelessSubsystem implements Subsystems
         }
     }
 
+    public static class Rainbow extends LightAction {
+        private int rainbowFirstPixelHue = 0;
+
+        @Override
+        public void run(AddressableLEDBuffer buff) {
+            for (var i = 0; i < buff.getLength(); i++) {
+                final int hue = (rainbowFirstPixelHue + (i * 180 / buff.getLength())) % 180;
+                buff.setHSV(i, hue, 255, 128);
+            }
+            rainbowFirstPixelHue += 3;
+            rainbowFirstPixelHue %= 180;
+        }
+    }
+
     private static abstract class LightAction {
         public abstract void run(AddressableLEDBuffer buff);
     }
@@ -74,7 +87,8 @@ public final class Lights extends TorqueStatelessSubsystem implements Subsystems
     private final AddressableLEDBuffer buff;
 
     private LightAction solidPurple = new Solid(() -> Color.kPurple), solidYellow = new Solid(() -> Color.kYellow),
-            blinkPurple = new Blink(() -> Color.kPurple, 6), blinkYellow = new Blink(() -> Color.kYellow, 6);
+            blinkPurple = new Blink(() -> Color.kPurple, 6), blinkYellow = new Blink(() -> Color.kYellow, 6),
+            solidGreen = new Solid(() -> Color.kGreen), rainbow = new Rainbow();;
 
     private Lights() {
         superstructureLEDs = new AddressableLED(Ports.LIGHTS_SUPERSTRUCTURE);
@@ -94,11 +108,18 @@ public final class Lights extends TorqueStatelessSubsystem implements Subsystems
     }
 
     public final LightAction getColor(final TorqueMode mode) {
+        if (drivebase.isState(Drivebase.State.BALANCE)) {
+            if (drivebase.isAutoLevelDone()) return rainbow;
+            else return solidGreen;
+        }
+
         if (intake.isConeMode()) {
-            if (intake.isActive()) return blinkYellow;
+            if (intake.isActive())
+                return blinkYellow;
             return solidYellow;
         } else {
-            if (intake.isActive()) return blinkPurple;
+            if (intake.isActive())
+                return blinkPurple;
             return solidPurple;
         }
     }

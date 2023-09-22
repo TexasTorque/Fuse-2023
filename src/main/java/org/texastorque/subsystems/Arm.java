@@ -94,7 +94,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
                 new ArmPose(-.8, Rotation2d.fromDegrees(240), 0))),
         HIGH_STOW(
             new ArmPosePair(
-                new ArmPose(0, Rotation2d.fromDegrees(135), 0))),
+                new ArmPose(0, Rotation2d.fromDegrees(135), -.1))),
         MOVING_IN(
             new ArmPosePair(
                 new ArmPose(0, Rotation2d.fromDegrees(-1), -.04)) 
@@ -102,7 +102,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         DOUBLE_SUB(
             new ArmPosePair(
                 new ArmPose(0, Rotation2d.fromDegrees(145), -.55),
-                new ArmPose(1.8 / TELESCOPE_RATIO, Rotation2d.fromDegrees(138), -.52)
+                new ArmPose(0, Rotation2d.fromDegrees(136), -.55)
             )
         ),
         SINGLE_SUB(

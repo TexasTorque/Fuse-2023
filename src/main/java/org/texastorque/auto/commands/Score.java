@@ -19,7 +19,9 @@ public final class Score extends TorqueSequence implements Subsystems {
 
     public Score(final Arm.State armScoreState, final Arm.State armEndState) {
         addBlock(arm.yieldState(armScoreState));
-        addBlock(arm.waitUntilAtState());
+        // addBlock(arm.waitUntilAtState()); telescope can get stuck, so just outtake
+        // after a couple secs
+        addBlock(new TorqueWaitTime(3));
         addBlock(intake.yieldState(Intake.State.OUTTAKE));
         addBlock(new TorqueWaitTime(.5));
         addBlock(intake.yieldState(Intake.State.OFF));

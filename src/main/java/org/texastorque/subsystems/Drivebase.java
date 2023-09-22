@@ -10,6 +10,7 @@ import org.texastorque.Debug;
 import org.texastorque.Field;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
+import org.texastorque.controllers.AutoLevelController;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.auto.commands.TorqueContinuous;
 import org.texastorque.torquelib.base.TorqueMode;
@@ -39,7 +40,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> implements Subsystems {
     public static enum State implements TorqueState {
-        FIELD_RELATIVE(null), ROBOT_RELATIVE(null), XF(FIELD_RELATIVE);
+        FIELD_RELATIVE(null), ROBOT_RELATIVE(null), XF(FIELD_RELATIVE), BALANCE(FIELD_RELATIVE);
 
         public final State parent;
 
@@ -148,6 +149,10 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     public SpeedSequence speedSequence = new SpeedSequence(speedSetting, speedSetting, -1);
 
+    private final AutoLevelController autoLevelController = new AutoLevelController();
+
+    public boolean inTeleop = false;
+
     private Drivebase() {
         super(State.FIELD_RELATIVE);
 
@@ -178,6 +183,14 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
         SmartDashboard.putData("FIELD", fieldMap);
     }
 
+    public boolean isState(State state) {
+        return desiredState == state;
+    }
+
+    public boolean isAutoLevelDone() {
+        return autoLevelController.isDone();
+    }
+
     @Override
     public final void initialize(final TorqueMode mode) {
         mode.onAuto(() -> {
@@ -188,6 +201,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
         mode.onTeleop(() -> {
             isRotationLocked = true;
             desiredState = State.FIELD_RELATIVE;
+            inTeleop = true;
         });
     }
 
@@ -213,9 +227,11 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
                 inputSpeeds = inputSpeeds
                         .times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
                                 : speedSetting.speed);
-            }
-            if (desiredState == State.FIELD_RELATIVE) {
+
                 calculateTeleop();
+                convertToFieldRelative();
+            } else if (desiredState == State.BALANCE) {
+                inputSpeeds = autoLevelController.calculate();
                 convertToFieldRelative();
             }
 
@@ -234,6 +250,8 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
             }
         }
 
+        autoLevelController.resetIf(desiredState != State.BALANCE);
+
         desiredState = desiredState.parent;
         Debug.log("Speed Shift State", speedSetting.toString());
         Debug.log("Speed Shift Value",
@@ -241,7 +259,6 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     }
 
     public void resetPose(final Pose2d pose) {
-        // gyro.setOffsetCW(pose.getRotation());
         poseEstimator.resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
     }
 
