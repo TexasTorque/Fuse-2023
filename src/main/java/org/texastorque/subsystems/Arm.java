@@ -5,10 +5,10 @@ import org.texastorque.Input;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.auto.TorqueCommand;
-import org.texastorque.torquelib.auto.commands.TorqueExecute;
 import org.texastorque.torquelib.auto.commands.TorqueWaitUntil;
 import org.texastorque.torquelib.base.TorqueMode;
-import org.texastorque.torquelib.base.TorqueSubsystem;
+import org.texastorque.torquelib.base.TorqueState;
+import org.texastorque.torquelib.base.TorqueStatorSubsystem;
 import org.texastorque.torquelib.motors.TorqueNEO;
 import org.texastorque.torquelib.sensors.TorqueCANCoder;
 import org.texastorque.torquelib.util.TorqueMath;
@@ -23,7 +23,8 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Timer;
 
-public class Arm extends TorqueSubsystem implements Subsystems {
+public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems {
+
     public static class ArmPose {
         public final double telescopePose, wristPose;
         public final Rotation2d rotaryPose;
@@ -71,7 +72,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     *                 |_____|   /
     *                /________ /
     */
-    public static enum State {
+    public static enum State implements TorqueState {
         // FORWARD: ArmPosePair(cube, cone), BACKWARD!!
         HIGH(
             new ArmPosePair(
@@ -90,19 +91,24 @@ public class Arm extends TorqueSubsystem implements Subsystems {
                 new ArmPose(9, Rotation2d.fromDegrees(235), -.25))),
         STOW(
             new ArmPosePair(
-                new ArmPose(-.8, Rotation2d.fromDegrees(232), -.04))),
+                new ArmPose(-.8, Rotation2d.fromDegrees(240), 0))),
         HIGH_STOW(
             new ArmPosePair(
                 new ArmPose(0, Rotation2d.fromDegrees(135), 0))),
         MOVING_IN(
             new ArmPosePair(
-                new ArmPose(0, Rotation2d.fromDegrees(-1), -.25))
+                new ArmPose(0, Rotation2d.fromDegrees(-1), -.04)) 
         ), 
         DOUBLE_SUB(
             new ArmPosePair(
-                new ArmPose(0, Rotation2d.fromDegrees(135), -.55),
-                new ArmPose(1.8, Rotation2d.fromDegrees(138), -.52)
+                new ArmPose(0, Rotation2d.fromDegrees(145), -.55),
+                new ArmPose(1.8 / TELESCOPE_RATIO, Rotation2d.fromDegrees(138), -.52)
             )
+        ),
+        SINGLE_SUB(
+            new ArmPosePair(
+                new ArmPose(-.8, Rotation2d.fromDegrees(240), 0),
+                new ArmPose(-.8, Rotation2d.fromDegrees(232), -.08))
         );
         // @formatter:on
 
@@ -132,35 +138,31 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
     private static volatile Arm instance;
 
-    private static final double ARM_RESTRICTED_MIN = 235, ARM_RESTRICTED_MAX = 290;
+    private static final double ROTARY_ENCODER_OFFSET = .03681546, WRIST_OFFSET = 0.875,
+            TELESCOPE_MIN_POSITION = 0,
+            WRIST_MIN_POSITION = -0.55, WRIST_MAX_POSITION = -0,
+            MAX_ROTARY_VOLTS = 12, MAX_TELESCOPE_VOLTS = 14, MAX_WRIST_VOLTS = 10,
+            ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2, TELESCOPE_RATIO = 80. / 63.,
+            ARM_RESTRICTED_MAX = 290, ARM_RESTRICTED_MIN = 235, TELESCOPE_MAX_POSITION = 22.5 * TELESCOPE_RATIO;
 
     public static synchronized final Arm getInstance() {
         return instance == null ? instance = new Arm() : instance;
     }
 
-    private final double ROTARY_ENCODER_OFFSET = .03681546, WRIST_OFFSET = 0.875,
-            TELESCOPE_MIN_POSITION = 0, TELESCOPE_MAX_POSITION = 22.5,
-            WRIST_MIN_POSITION = -0.55, WRIST_MAX_POSITION = -0,
-            MAX_ROTARY_VOLTS = 12, MAX_TELESCOPE_VOLTS = 14, MAX_WRIST_VOLTS = 10,
-            ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2;
     private final TorqueNEO rotary, telescope, wrist;
-
     private final PIDController rotatePID, telescopePID, wristPID;
     private final TorqueCANCoder rotaryEncoder;
-    private final CANCoderConfiguration cancoderConfig;
 
     private final AbsoluteEncoder wristEncoder;
 
     private Rotation2d currentRotaryPose;
 
     private double currentTelescopePose, wantedTelescopePose, currentWristPose, wantedWristPose, currentRotaryDegrees,
-            wantedRotaryDegrees, telescopeVelocity;
-
-    private State desiredState;
-
-    double telescopeDelta = 0;
+            wantedRotaryDegrees, telescopeVelocity, telescopeDelta, rotaryAdjustment;
 
     public Arm() {
+        super(State.STOW);
+
         rotary = new TorqueNEO(Ports.ARM_ROTARY);
         rotary.addFollower(Ports.ARM_ROTARY_2, false);
         rotary.setVoltageCompensation(12.6);
@@ -169,7 +171,14 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         rotary.burnFlash();
         rotatePID = new PIDController(4, 0, 0);
         rotaryEncoder = new TorqueCANCoder(Ports.ARM_ROTARY_ENCODER);
-        cancoderConfig = new CANCoderConfiguration();
+
+        CANCoderConfiguration cancoderConfig = new CANCoderConfiguration();
+        cancoderConfig.sensorCoefficient = 2 * Math.PI / 4096.0;
+        cancoderConfig.unitString = "rad";
+        cancoderConfig.sensorTimeBase = SensorTimeBase.PerSecond;
+        cancoderConfig.initializationStrategy = SensorInitializationStrategy.BootToAbsolutePosition;
+
+        rotaryEncoder.configAllSettings(cancoderConfig);
         currentRotaryPose = new Rotation2d(rotary.getPosition());
 
         telescope = new TorqueNEO(Ports.TELESCOPE);
@@ -185,14 +194,6 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         wristEncoder = wrist.getAbsoluteEncoder(Type.kDutyCycle);
         wristPID = new PIDController(25, 0, 0);
         wrist.burnFlash();
-
-        desiredState = State.STOW;
-
-        cancoderConfig.sensorCoefficient = 2 * Math.PI / 4096.0;
-        cancoderConfig.unitString = "rad";
-        cancoderConfig.sensorTimeBase = SensorTimeBase.PerSecond;
-        cancoderConfig.initializationStrategy = SensorInitializationStrategy.BootToAbsolutePosition;
-        rotaryEncoder.configAllSettings(cancoderConfig);
     }
 
     public boolean isAtState() {
@@ -205,14 +206,6 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         return desiredState == State.DOUBLE_SUB;
     }
 
-    public void setState(final State state) {
-        this.desiredState = state;
-    }
-
-    public TorqueCommand yieldState(final State state) {
-        return new TorqueExecute(() -> setState(state));
-    }
-
     public TorqueCommand waitUntilAtState() {
         return new TorqueWaitUntil(this::isAtState);
     }
@@ -221,15 +214,19 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         return Math.abs(wantedTelescopePose - currentTelescopePose) < TELESCOPE_TOLERANCE;
     }
 
-    @Override
-    public void initialize(TorqueMode mode) {
+    public void setRotaryAdjustment(double setpointAdjustment) {
+        rotaryAdjustment = setpointAdjustment;
     }
 
     @Override
-    public void update(TorqueMode mode) {
-        Debug.log("Arm State", desiredState.toString());
+    public void initialize(final TorqueMode mode) {
+    }
 
+    @Override
+    public void update(final TorqueMode mode) {
         double rotaryAngleDelta = Math.abs(wantedRotaryDegrees - currentRotaryDegrees);
+
+        Debug.log("Arm State", desiredState.toString());
         Debug.log("Rotary Angle Delta", rotaryAngleDelta);
 
         telescopeDelta = wantedTelescopePose - currentTelescopePose;
@@ -254,7 +251,7 @@ public class Arm extends TorqueSubsystem implements Subsystems {
         if (ARM_RESTRICTED_MAX <= currentRotaryDegrees && currentRotaryDegrees <= 360)
             currentRotaryDegrees -= 360;
 
-        wantedRotaryDegrees = state.get().rotaryPose.getDegrees();
+        wantedRotaryDegrees = state.get().rotaryPose.getDegrees() + rotaryAdjustment * 3;
 
         if (ARM_RESTRICTED_MAX <= wantedRotaryDegrees && wantedRotaryDegrees <= 360)
             wantedRotaryDegrees -= 360;
@@ -274,15 +271,15 @@ public class Arm extends TorqueSubsystem implements Subsystems {
     private void updateTelescope(State state) {
         currentTelescopePose = telescope.getPosition();
         telescopeVelocity = telescope.getVelocity();
+        wantedTelescopePose = state.get().telescopePose * TELESCOPE_RATIO;
+        wantedTelescopePose = TorqueMath.constrain(wantedTelescopePose, TELESCOPE_MIN_POSITION, TELESCOPE_MAX_POSITION);
 
         Debug.log("Current Telescope Pose", currentTelescopePose);
-
-        wantedTelescopePose = state.get().telescopePose;
 
         wantedTelescopePose = TorqueMath.constrain(wantedTelescopePose, TELESCOPE_MIN_POSITION, TELESCOPE_MAX_POSITION);
 
         double volts = telescopePID.calculate(currentTelescopePose, wantedTelescopePose);
-        volts = TorqueMath.constrain(volts, 6);
+        volts = TorqueMath.constrain(volts, 6); // this may need to change to be faster
 
         // 🐐 code
         if (Math.abs(telescopeVelocity) <= 300 && Math.abs(telescopeDelta) >= 3) {
@@ -294,7 +291,6 @@ public class Arm extends TorqueSubsystem implements Subsystems {
                 volts = telescopeDelta < 0 ? 0.001 : -4;
             }
         }
-        // volts += Math.signum(volts) * 8;
 
         volts = TorqueMath.constrain(volts, MAX_TELESCOPE_VOLTS);
 
@@ -303,34 +299,16 @@ public class Arm extends TorqueSubsystem implements Subsystems {
 
     private void updateWrist(State state) {
         currentWristPose = wristEncoder.getPosition() - WRIST_OFFSET;
-
         wantedWristPose = TorqueMath.constrain(state.get().wristPose, WRIST_MIN_POSITION, WRIST_MAX_POSITION);
 
         Debug.log("Wrist Desired Position", wantedWristPose);
-
         Debug.log("Current Wrist Position", currentWristPose);
 
-        // if (state == State.MOVING_IN) {
-        // // double wantedRot = desiredState.get().rotaryPose.getDegrees();
-        // if (currentRotaryDegrees >= ARM_RESTRICTED_MAX)
-        // currentRotaryDegrees -= 360;
-        // desiredPose = currentRotaryDegrees <= 90 ? WRIST_MIN_POSITION :
-        // WRIST_MAX_POSITION;
-        // // -.55 : 0
-        // }
-
-        // Since the wrist needs an additional feedforward, we add one based off what
-        // direction the volts are trying to go
         double volts = wristPID.calculate(currentWristPose, wantedWristPose);
 
-        // volts = TorqueMath.signum(volts) * Math.max(MIN_WRIST_VOLTS,
-        // Math.abs(volts));
+        volts = -TorqueMath.constrain(volts, MAX_WRIST_VOLTS);
 
-        // if ((currentRotaryDegrees <= 90) && (desiredState == State.HIGH ||
-        // desiredState == State.MID)) volts -= 1.5;
-        volts = -TorqueMath.constrain(volts, MAX_WRIST_VOLTS); // PID needs to be inverted because of mechanical
-
-        // Debug.log("Wrist PID Volts", volts);
+        Debug.log("Wrist PID Volts", volts);
 
         if (desiredState == State.INTAKE && intake.isConeMode())
             volts = 1;

@@ -7,19 +7,21 @@
 package org.texastorque.auto.sequence;
 
 import org.texastorque.Subsystems;
-import org.texastorque.auto.routines.FollowPath;
-import org.texastorque.auto.routines.Score;
+import org.texastorque.auto.commands.FollowPath;
+import org.texastorque.auto.commands.Score;
 import org.texastorque.subsystems.Arm;
 import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.auto.TorqueSequence;
-import org.texastorque.torquelib.auto.commands.TorqueSequenceRunner;
-import org.texastorque.torquelib.auto.commands.TorqueWaitForSeconds;
+import org.texastorque.torquelib.auto.commands.TorqueWaitTime;
 
-public final class Any1 extends TorqueSequence implements Subsystems {
-    public Any1() {
+public final class Flat1 extends TorqueSequence implements Subsystems {
+    public Flat1() {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
-        addBlock(new TorqueSequenceRunner(new Score(Arm.State.HIGH)));
-        addBlock(new TorqueWaitForSeconds(1));
+
+        addBlock(new Score(Arm.State.HIGH).command());
+
+        addBlock(new TorqueWaitTime(1));
+
         addBlock(new FollowPath("taxi", 2.5, 3.5));
     }
 }

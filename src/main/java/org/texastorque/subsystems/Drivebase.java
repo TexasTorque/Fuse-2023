@@ -13,7 +13,8 @@ import org.texastorque.Subsystems;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.auto.commands.TorqueContinuous;
 import org.texastorque.torquelib.base.TorqueMode;
-import org.texastorque.torquelib.base.TorqueSubsystem;
+import org.texastorque.torquelib.base.TorqueState;
+import org.texastorque.torquelib.base.TorqueStatorSubsystem;
 import org.texastorque.torquelib.sensors.TorqueNavXGyro;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022.SwerveConfig;
@@ -32,11 +33,12 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-public final class Drivebase extends TorqueSubsystem implements Subsystems {
-    public static enum State {
+public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> implements Subsystems {
+    public static enum State implements TorqueState {
         FIELD_RELATIVE(null), ROBOT_RELATIVE(null), XF(FIELD_RELATIVE);
 
         public final State parent;
@@ -47,24 +49,40 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     public enum SpeedSetting {
-        SLOW(.25), MID(.5), FAST(1.0);
+        SLOW(.25), MID(.5), FAST(1.0), SEQ(1);
 
         private static final SpeedSetting[] vals = values();
 
-        public final double speed;
+        public double speed;
 
         private SpeedSetting(final double speed) {
             this.speed = speed;
         }
 
         public SpeedSetting shiftUp() {
-            return vals[Math.min((this.ordinal() + 1), vals.length - 1)];
+            return vals[Math.min((this.ordinal() + 1), vals.length - 2)];
         }
 
         public SpeedSetting shiftDown() {
             return vals[Math.max((this.ordinal() - 1), 0)];
         }
+    }
 
+    public static class SpeedSequence {
+        final double initSpeed, finalSpeed, duration, startTime, speedDeceleration;
+
+        // Linearly decreases the speed every second for a duration of time
+        public SpeedSequence(final SpeedSetting initSpeed, final SpeedSetting finalSpeed, final double duration) {
+            this.initSpeed = initSpeed.speed;
+            this.finalSpeed = finalSpeed.speed;
+            this.duration = duration;
+            speedDeceleration = (this.initSpeed - this.finalSpeed) / duration;
+            startTime = Timer.getFPGATimestamp();
+        }
+
+        public double get() {
+            return Math.max(initSpeed - speedDeceleration * (Timer.getFPGATimestamp() - startTime), finalSpeed);
+        }
     }
 
     private static volatile Drivebase instance;
@@ -101,9 +119,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         return instance == null ? instance = new Drivebase() : instance;
     }
 
-    private State state = State.ROBOT_RELATIVE;
-    private State requestedState = State.ROBOT_RELATIVE;
-
     private final Translation2d LOC_FL = new Translation2d(LENGTH / 2, -WIDTH / 2),
             LOC_FR = new Translation2d(LENGTH / 2, WIDTH / 2),
             LOC_BL = new Translation2d(-LENGTH / 2, -WIDTH / 2),
@@ -131,7 +146,11 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     public SpeedSetting speedSetting = SpeedSetting.FAST;
 
+    public SpeedSequence speedSequence = new SpeedSequence(speedSetting, speedSetting, -1);
+
     private Drivebase() {
+        super(State.FIELD_RELATIVE);
+
         teleopOmegaController.enableContinuousInput(-Math.PI, Math.PI);
         lastRotationRadians = gyro.getRotation2d().getRadians();
 
@@ -159,28 +178,16 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         SmartDashboard.putData("FIELD", fieldMap);
     }
 
-    public void setState(final State state) {
-        this.state = state;
-    }
-
-    public State getState() {
-        return requestedState;
-    }
-
-    public boolean isState(final State state) {
-        return getState() == state;
-    }
-
     @Override
     public final void initialize(final TorqueMode mode) {
         mode.onAuto(() -> {
             isRotationLocked = false;
-            state = State.ROBOT_RELATIVE;
+            desiredState = State.ROBOT_RELATIVE;
         });
 
         mode.onTeleop(() -> {
             isRotationLocked = true;
-            state = State.FIELD_RELATIVE;
+            desiredState = State.FIELD_RELATIVE;
         });
     }
 
@@ -199,15 +206,15 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public final void update(final TorqueMode mode) {
         updateFeedback();
 
-        requestedState = state;
-
-        if (state == State.XF) {
+        if (desiredState == State.XF) {
             xFactor();
         } else {
             if (mode.isTeleop()) {
-                inputSpeeds = inputSpeeds.times(speedSetting.speed);
+                inputSpeeds = inputSpeeds
+                        .times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
+                                : speedSetting.speed);
             }
-            if (state == State.FIELD_RELATIVE) {
+            if (desiredState == State.FIELD_RELATIVE) {
                 calculateTeleop();
                 convertToFieldRelative();
             }
@@ -227,8 +234,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             }
         }
 
-        state = state.parent;
+        desiredState = desiredState.parent;
         Debug.log("Speed Shift State", speedSetting.toString());
+        Debug.log("Speed Shift Value",
+                speedSetting == SpeedSetting.SEQ ? speedSequence.get() : speedSetting.speed);
     }
 
     public void resetPose(final Pose2d pose) {

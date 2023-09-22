@@ -3,19 +3,21 @@ package org.texastorque.subsystems;
 import org.texastorque.Debug;
 import org.texastorque.Input;
 import org.texastorque.Ports;
+import org.texastorque.Subsystems;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.auto.commands.TorqueExecute;
 import org.texastorque.torquelib.base.TorqueMode;
-import org.texastorque.torquelib.base.TorqueSubsystem;
+import org.texastorque.torquelib.base.TorqueState;
+import org.texastorque.torquelib.base.TorqueStatorSubsystem;
 import org.texastorque.torquelib.control.TorqueRequestableTimeout;
 import org.texastorque.torquelib.motors.TorqueNEO;
 
-public class Intake extends TorqueSubsystem {
+public class Intake extends TorqueStatorSubsystem<Intake.State> implements Subsystems {
     public static enum GamePiece {
         CUBE, CONE;
     }
 
-    public static enum State {
+    public static enum State implements TorqueState {
         OFF(-3), INTAKE(-5, -12), OUTTAKE(12);
 
         public final double cubeSpeed, coneSpeed;
@@ -42,23 +44,20 @@ public class Intake extends TorqueSubsystem {
 
     private final TorqueNEO rollers;
 
-    private State desiredState, activeState;
-
     private GamePiece gamePieceMode;
-    private final TorqueRequestableTimeout spikeTimeout = new TorqueRequestableTimeout();
 
+    private final TorqueRequestableTimeout spikeTimeout = new TorqueRequestableTimeout();
     public Intake() {
+        super(State.OFF, State.OFF);
         rollers = new TorqueNEO(Ports.WRIST_ROLLERS);
         rollers.setVoltageCompensation(12.6);
         rollers.setCurrentLimit(10);
         rollers.setBreakMode(false);
-        desiredState = State.OFF;
-        activeState = State.OFF;
         gamePieceMode = GamePiece.CONE;
     }
 
-    public void setState(State state) {
-        this.desiredState = state;
+    public boolean isActive() {
+        return desiredState != State.OFF;
     }
 
     public boolean isConeMode() {
@@ -74,11 +73,7 @@ public class Intake extends TorqueSubsystem {
     }
 
     @Override
-    public void initialize(TorqueMode mode) {
-    }
-
-    public TorqueCommand yieldState(final State state) {
-        return new TorqueExecute(() -> setState(state));
+    public void initialize(final TorqueMode mode) {
     }
 
     public TorqueCommand yieldGamePiece(final GamePiece gamePieceMode) {
@@ -86,7 +81,7 @@ public class Intake extends TorqueSubsystem {
     }
 
     @Override
-    public void update(TorqueMode mode) {
+    public void update(final TorqueMode mode) {
         Debug.log("Rollers Current", rollers.getCurrent());
 
         if (desiredState == State.INTAKE) {
@@ -98,9 +93,7 @@ public class Intake extends TorqueSubsystem {
             spikeTimeout.set(1.0);
         }
 
-        activeState = desiredState;
-
-        rollers.setVolts(activeState.get());
+        rollers.setVolts(desiredState.get());
 
         if (mode.isTeleop())
             desiredState = State.OFF;

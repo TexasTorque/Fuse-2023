@@ -4,7 +4,7 @@
  * This file is part of Torque-2023, which is not licensed for distribution.
  * For more details, see ./license.txt or write <jus@justusl.com>.
  */
-package org.texastorque.auto.routines;
+package org.texastorque.auto.commands;
 
 import java.util.ArrayList;
 import java.util.List;
