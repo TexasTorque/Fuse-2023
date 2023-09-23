@@ -87,7 +87,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
                 new ArmPose(15, Rotation2d.fromDegrees(152), -.55))),
         INTAKE(
             new ArmPosePair(
-                new ArmPose(9, Rotation2d.fromDegrees(215), -.46),
+                new ArmPose(9, Rotation2d.fromDegrees(217), -.46),
                 new ArmPose(9, Rotation2d.fromDegrees(235), -.38))),
         STOW(
             new ArmPosePair(
@@ -285,7 +285,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         volts = TorqueMath.constrain(volts, 6); // this may need to change to be faster
 
         // 🐐 code
-        if (Math.abs(telescopeVelocity) <= 300 && Math.abs(telescopeDelta) >= 3) {
+        if (Math.abs(telescopeVelocity) <= 300 && Math.abs(telescopeDelta) >= 6) {
             long t = Math.round(Timer.getFPGATimestamp() * 3);
             if (t % 2 == 0) {
                 volts = Math.signum(telescopeDelta) * 14;

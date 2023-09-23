@@ -12,16 +12,15 @@ import org.texastorque.auto.commands.Score;
 import org.texastorque.subsystems.Arm;
 import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.auto.TorqueSequence;
-import org.texastorque.torquelib.auto.commands.TorqueWaitTime;
 
-public final class Flat1 extends TorqueSequence implements Subsystems {
-    public Flat1() {
+public final class Bump1 extends TorqueSequence implements Subsystems {
+    public Bump1() {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
-
+        addBlock(new Score(Arm.State.HIGH, Arm.State.INTAKE).command());
+        addBlock(intake.yieldGamePiece(Intake.GamePiece.CUBE));
+        addBlock(new FollowPath("BumpCollect", 2.5, 3.5));
         addBlock(new Score(Arm.State.HIGH).command());
+        addBlock(new FollowPath("BumpGoToLine", 2.5, 3.5));
 
-        addBlock(new TorqueWaitTime(1));
-
-        addBlock(new FollowPath("Taxi", 2.5, 3.5));
     }
 }
