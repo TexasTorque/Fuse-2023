@@ -254,7 +254,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         if (ARM_RESTRICTED_MAX <= currentRotaryDegrees && currentRotaryDegrees <= 360)
             currentRotaryDegrees -= 360;
 
-        wantedRotaryDegrees = state.get().rotaryPose.getDegrees() + rotaryAdjustment * 3;
+        wantedRotaryDegrees = state.get().rotaryPose.getDegrees() + rotaryAdjustment * 10;
 
         if (ARM_RESTRICTED_MAX <= wantedRotaryDegrees && wantedRotaryDegrees <= 360)
             wantedRotaryDegrees -= 360;
