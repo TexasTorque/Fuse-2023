@@ -20,6 +20,6 @@ public final class Flat2 extends TorqueSequence implements Subsystems {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CUBE));
         addBlock(new FollowPath("FlatCollect", 2.5, 3.5));
         addBlock(new Score(Arm.State.HIGH).command());
-        addBlock(new FollowPath("FlatGoToline", 2.5, 3.5));
+        addBlock(new FollowPath("FlatGoToLine", 2.5, 3.5));
     }
 }
