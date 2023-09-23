@@ -20,6 +20,7 @@ import org.texastorque.torquelib.sensors.TorqueNavXGyro;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022.SwerveConfig;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
+import org.texastorque.torquelib.util.TorqueMath;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
@@ -166,10 +167,13 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
-        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, -2.90077720631102, config);
-        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 2.004908837378025, config);
-        bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, -.607455164194107, config);
-        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, 1.4542108476, config);
+        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, TorqueMath.constrain0to2PI(-2.90077720631102),
+                config);
+        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, TorqueMath.constrain0to2PI(2.004908837378025),
+                config);
+        bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, TorqueMath.constrain0to2PI(-.607455164194107),
+                config);
+        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, TorqueMath.constrain0to2PI(1.4542108476), config);
 
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
 

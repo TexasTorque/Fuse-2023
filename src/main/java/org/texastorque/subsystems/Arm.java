@@ -87,8 +87,8 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
                 new ArmPose(15, Rotation2d.fromDegrees(152), -.55))),
         INTAKE(
             new ArmPosePair(
-                new ArmPose(9, Rotation2d.fromDegrees(215), -.38),
-                new ArmPose(9, Rotation2d.fromDegrees(235), -.25))),
+                new ArmPose(9, Rotation2d.fromDegrees(215), -.46),
+                new ArmPose(9, Rotation2d.fromDegrees(235), -.38))),
         STOW(
             new ArmPosePair(
                 new ArmPose(-.8, Rotation2d.fromDegrees(240), 0))),
@@ -101,14 +101,17 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         ), 
         DOUBLE_SUB(
             new ArmPosePair(
-                new ArmPose(0, Rotation2d.fromDegrees(145), -.55),
-                new ArmPose(0, Rotation2d.fromDegrees(136), -.55)
+                new ArmPose(0, Rotation2d.fromDegrees(148), -.57),
+                new ArmPose(13, Rotation2d.fromDegrees(150), -.57)
             )
         ),
         SINGLE_SUB(
             new ArmPosePair(
                 new ArmPose(-.8, Rotation2d.fromDegrees(240), 0),
                 new ArmPose(-.8, Rotation2d.fromDegrees(232), -.08))
+        ), LOW_DUMP(
+            new ArmPosePair(
+                new ArmPose(-.8, Rotation2d.fromDegrees(240), -.25))
         );
         // @formatter:on
 
@@ -138,10 +141,10 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
 
     private static volatile Arm instance;
 
-    private static final double ROTARY_ENCODER_OFFSET = .03681546, WRIST_OFFSET = 0.875,
+    private static final double ROTARY_ENCODER_OFFSET = .03681546, WRIST_OFFSET = .7424,
             TELESCOPE_MIN_POSITION = 0,
-            WRIST_MIN_POSITION = -0.55, WRIST_MAX_POSITION = -0,
-            MAX_ROTARY_VOLTS = 12, MAX_TELESCOPE_VOLTS = 14, MAX_WRIST_VOLTS = 10,
+            WRIST_MIN_POSITION = -0.57, WRIST_MAX_POSITION = -0,
+            MAX_ROTARY_VOLTS = 12, MAX_TELESCOPE_VOLTS = 14, MAX_WRIST_VOLTS = 12,
             ROTARY_TOLERANCE = 7, TELESCOPE_TOLERANCE = 3, WRIST_TOLERANCE = .2, TELESCOPE_RATIO = 80. / 63.,
             ARM_RESTRICTED_MAX = 290, ARM_RESTRICTED_MIN = 235, TELESCOPE_MAX_POSITION = 22.5 * TELESCOPE_RATIO;
 
@@ -192,7 +195,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         wrist.setCurrentLimit(30);
         wrist.setBreakMode(true);
         wristEncoder = wrist.getAbsoluteEncoder(Type.kDutyCycle);
-        wristPID = new PIDController(25, 0, 0);
+        wristPID = new PIDController(50, 0, 0);
         wrist.burnFlash();
     }
 
@@ -310,8 +313,8 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
 
         Debug.log("Wrist PID Volts", volts);
 
-        if (desiredState == State.INTAKE && intake.isConeMode())
-            volts = 1;
+        // if (desiredState == State.INTAKE && intake.isConeMode())
+        // volts = 1;
 
         wrist.setVolts(volts);
     }

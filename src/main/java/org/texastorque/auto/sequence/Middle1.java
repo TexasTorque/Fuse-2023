@@ -12,15 +12,15 @@ public class Middle1 extends TorqueSequence implements Subsystems {
     public Middle1() {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
 
-        addBlock(new Score(Arm.State.HIGH).command());
+        addBlock(new Score(Arm.State.MID).command());
 
         addBlock(new TorqueWaitTime(1)); // Wait for the arm to go back to stow
 
-        addBlock(new FollowPath("balance-out", 1.5, 2.5));
+        addBlock(new FollowPath("balance-out", 3.5, 2.5));
 
         addBlock(new TorqueWaitTime(2));
 
-        addBlock(new FollowPath("balance-in", 1.5, 2.5));
+        addBlock(new FollowPath("balance-in", 3.5, 2.5));
 
         addBlock(drivebase.setStateCommand(Drivebase.State.BALANCE));
 
