@@ -13,10 +13,10 @@ import org.texastorque.subsystems.Arm;
 import org.texastorque.subsystems.Intake;
 import org.texastorque.torquelib.auto.TorqueSequence;
 
-public final class Bump1 extends TorqueSequence implements Subsystems {
-    public Bump1() {
+public final class Bump2 extends TorqueSequence implements Subsystems {
+    public Bump2() {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
-        addBlock(new Score(Arm.State.HIGH, Arm.State.INTAKE).command());
+        addBlock(new Score(Arm.State.HIGH, Arm.State.INTAKE_AUTO).command());
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CUBE));
         addBlock(new FollowPath("BumpCollect", 2.5, 3.5));
         addBlock(new Score(Arm.State.HIGH).command());

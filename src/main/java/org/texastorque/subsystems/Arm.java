@@ -87,7 +87,7 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
                 new ArmPose(15, Rotation2d.fromDegrees(152), -.55))),
         INTAKE(
             new ArmPosePair(
-                new ArmPose(9, Rotation2d.fromDegrees(216), -.46),
+                new ArmPose(9, Rotation2d.fromDegrees(214), -.46),
                 new ArmPose(9, Rotation2d.fromDegrees(235), -.38))),
         STOW(
             new ArmPosePair(
@@ -112,7 +112,10 @@ public class Arm extends TorqueStatorSubsystem<Arm.State> implements Subsystems 
         ), LOW_DUMP(
             new ArmPosePair(
                 new ArmPose(-.8, Rotation2d.fromDegrees(240), -.25))
-        );
+        ), INTAKE_AUTO (
+        new ArmPosePair(
+            new ArmPose(9, Rotation2d.fromDegrees(216), -.46),
+            new ArmPose(9, Rotation2d.fromDegrees(235), -.38))),;
         // @formatter:on
 
         public final ArmPosePair forwards, backwards;
