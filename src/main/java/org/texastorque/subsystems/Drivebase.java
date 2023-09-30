@@ -90,7 +90,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private static volatile Drivebase instance;
 
     public static final double WIDTH = Units.inchesToMeters(18), LENGTH = Units.inchesToMeters(21),
-            MAX_VELOCITY = 4.522, MAX_ACCELERATION = 8.958, MAX_ANGULAR_VELOCITY = 2 * Math.PI,
+            MAX_VELOCITY = 3.5, MAX_ACCELERATION = 3.5, MAX_ANGULAR_VELOCITY = 2 * Math.PI,
             MAX_ANGULAR_ACCELERATION = 2 * Math.PI, WHEEL_DIAMETER = Units.inchesToMeters(4.0);
 
     public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(0));
@@ -137,7 +137,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     private double lastRotationRadians;
 
-    private final PIDController teleopOmegaController = new PIDController(.25 * Math.PI, 0, 0);
+    private final PIDController teleopOmegaController = new PIDController(.25, 0, 0);
 
     private SwerveModuleState[] swerveStates;
     public TorqueSwerveSpeeds inputSpeeds = new TorqueSwerveSpeeds(0, 0, 0);
@@ -154,6 +154,9 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     public boolean inTeleop = false;
 
+    private double backLeftFF = .207, backRightFF = .201, frontLeftFF = .208, frontRightFF = .204;
+    private double backLeftTurnP = .3, backRightTurnP = .3, frontLeftTurnP = .3, frontRightTurnP = .3;
+
     private Drivebase() {
         super(State.FIELD_RELATIVE);
 
@@ -162,18 +165,24 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
         final SwerveConfig config = SwerveConfig.defaultConfig;
 
+        SmartDashboard.putNumber("back_left turn p", backLeftTurnP);
+        SmartDashboard.putNumber("back_right turn p", backRightTurnP);
+        SmartDashboard.putNumber("front_left turn p", frontLeftTurnP);
+        SmartDashboard.putNumber("front_right turn p", frontRightTurnP);
+
         config.maxVelocity = MAX_VELOCITY;
         config.maxAcceleration = MAX_ACCELERATION;
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
         fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, TorqueMath.constrain0to2PI(-2.90077720631102),
-                config);
+                config, frontLeftFF, frontLeftTurnP);
         fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, TorqueMath.constrain0to2PI(2.004908837378025),
-                config);
+                config, frontRightFF, frontRightTurnP);
         bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, TorqueMath.constrain0to2PI(-.607455164194107),
-                config);
-        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, TorqueMath.constrain0to2PI(1.4542108476), config);
+                config, backLeftFF, backLeftTurnP);
+        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, TorqueMath.constrain0to2PI(1.4542108476),
+                config, backRightFF, backRightTurnP);
 
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
 
@@ -197,6 +206,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     @Override
     public final void initialize(final TorqueMode mode) {
+
         mode.onAuto(() -> {
             isRotationLocked = false;
             desiredState = State.ROBOT_RELATIVE;
@@ -223,6 +233,11 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     @Override
     public final void update(final TorqueMode mode) {
         updateFeedback();
+
+        backLeftTurnP = SmartDashboard.getNumber("back_left turn p", backLeftTurnP);
+        backRightTurnP = SmartDashboard.getNumber("back_right turn p", backRightTurnP);
+        frontLeftTurnP = SmartDashboard.getNumber("front_left turn p", frontLeftTurnP);
+        frontRightTurnP = SmartDashboard.getNumber("front_right turn p", frontRightTurnP);
 
         if (desiredState == State.XF) {
             xFactor();
@@ -325,11 +340,17 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private void calculateTeleop() {
         final double realRotationRadians = gyro.getHeadingCCW().getRadians();
 
+        boolean rotLock = false;
+        SmartDashboard.putNumber("rad per second", inputSpeeds.omegaRadiansPerSecond);
+
         if (isRotationLocked && !inputSpeeds.hasRotationalVelocity()
                 && inputSpeeds.hasTranslationalVelocity()) {
             final double omega = teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
             inputSpeeds.omegaRadiansPerSecond = omega;
+            rotLock = true;
         } else
             lastRotationRadians = realRotationRadians;
+
+        SmartDashboard.putBoolean("rotation lock", rotLock);
     }
 }
