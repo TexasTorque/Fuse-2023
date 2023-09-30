@@ -25,7 +25,7 @@ import edu.wpi.first.wpilibj.Timer;
 public final class Input extends TorqueInput<TorqueController> implements Subsystems {
     private static volatile Input instance;
 
-    private final static double DEADBAND = 0.25;
+    private final static double DEADBAND = 0.125;
 
     public static final synchronized Input getInstance() {
         return instance == null ? instance = new Input() : instance;

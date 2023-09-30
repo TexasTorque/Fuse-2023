@@ -137,7 +137,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     private double lastRotationRadians;
 
-    private final PIDController teleopOmegaController = new PIDController(.25, 0, 0);
+    private final PIDController teleopOmegaController = new PIDController(.4, 0, 0);
 
     private SwerveModuleState[] swerveStates;
     public TorqueSwerveSpeeds inputSpeeds = new TorqueSwerveSpeeds(0, 0, 0);

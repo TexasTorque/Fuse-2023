@@ -16,10 +16,10 @@ import org.texastorque.torquelib.auto.TorqueSequence;
 public final class Flat2 extends TorqueSequence implements Subsystems {
     public Flat2() {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
-        addBlock(new Score(Arm.State.MID, Arm.State.INTAKE_AUTO).command());
+        addBlock(new Score(Arm.State.MID, 2, Arm.State.INTAKE_AUTO).command());
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CUBE));
         addBlock(new FollowPath("FlatCollect", 3.5, 3.5));
-        addBlock(new Score(Arm.State.MID).command());
+        addBlock(new Score(Arm.State.MID, 1.5, Arm.State.STOW).command());
         addBlock(new FollowPath("FlatGoToLine", 3.5, 3.5));
     }
 }
