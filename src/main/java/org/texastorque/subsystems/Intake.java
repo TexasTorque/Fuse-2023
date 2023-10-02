@@ -5,7 +5,7 @@ import org.texastorque.Input;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.auto.TorqueCommand;
-import org.texastorque.torquelib.auto.commands.TorqueExecute;
+import org.texastorque.torquelib.auto.commands.TorqueRun;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueState;
 import org.texastorque.torquelib.base.TorqueStatorSubsystem;
@@ -77,7 +77,7 @@ public class Intake extends TorqueStatorSubsystem<Intake.State> implements Subsy
     }
 
     public TorqueCommand yieldGamePiece(final GamePiece gamePieceMode) {
-        return new TorqueExecute(() -> setGamePieceMode(gamePieceMode));
+        return new TorqueRun(() -> setGamePieceMode(gamePieceMode));
     }
 
     @Override

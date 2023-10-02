@@ -10,6 +10,7 @@ import org.texastorque.Debug;
 import org.texastorque.Field;
 import org.texastorque.Ports;
 import org.texastorque.Subsystems;
+import org.texastorque.controllers.AutoLevelController;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.auto.commands.TorqueContinuous;
 import org.texastorque.torquelib.base.TorqueMode;
@@ -19,6 +20,7 @@ import org.texastorque.torquelib.sensors.TorqueNavXGyro;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022.SwerveConfig;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
+import org.texastorque.torquelib.util.TorqueMath;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
@@ -39,7 +41,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> implements Subsystems {
     public static enum State implements TorqueState {
-        FIELD_RELATIVE(null), ROBOT_RELATIVE(null), XF(FIELD_RELATIVE);
+        FIELD_RELATIVE(null), ROBOT_RELATIVE(null), XF(FIELD_RELATIVE), BALANCE(FIELD_RELATIVE);
 
         public final State parent;
 
@@ -88,7 +90,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private static volatile Drivebase instance;
 
     public static final double WIDTH = Units.inchesToMeters(18), LENGTH = Units.inchesToMeters(21),
-            MAX_VELOCITY = 4.522, MAX_ACCELERATION = 8.958, MAX_ANGULAR_VELOCITY = 2 * Math.PI,
+            MAX_VELOCITY = 3.5, MAX_ACCELERATION = 3.5, MAX_ANGULAR_VELOCITY = 2 * Math.PI,
             MAX_ANGULAR_ACCELERATION = 2 * Math.PI, WHEEL_DIAMETER = Units.inchesToMeters(4.0);
 
     public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(0));
@@ -135,7 +137,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     private double lastRotationRadians;
 
-    private final PIDController teleopOmegaController = new PIDController(.25 * Math.PI, 0, 0);
+    private final PIDController teleopOmegaController = new PIDController(.4, 0, 0);
 
     private SwerveModuleState[] swerveStates;
     public TorqueSwerveSpeeds inputSpeeds = new TorqueSwerveSpeeds(0, 0, 0);
@@ -148,6 +150,13 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     public SpeedSequence speedSequence = new SpeedSequence(speedSetting, speedSetting, -1);
 
+    private final AutoLevelController autoLevelController = new AutoLevelController();
+
+    public boolean inTeleop = false;
+
+    private double backLeftFF = .207, backRightFF = .201, frontLeftFF = .208, frontRightFF = .204;
+    private double backLeftTurnP = .3, backRightTurnP = .3, frontLeftTurnP = .3, frontRightTurnP = .3;
+
     private Drivebase() {
         super(State.FIELD_RELATIVE);
 
@@ -156,15 +165,24 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
         final SwerveConfig config = SwerveConfig.defaultConfig;
 
+        SmartDashboard.putNumber("back_left turn p", backLeftTurnP);
+        SmartDashboard.putNumber("back_right turn p", backRightTurnP);
+        SmartDashboard.putNumber("front_left turn p", frontLeftTurnP);
+        SmartDashboard.putNumber("front_right turn p", frontRightTurnP);
+
         config.maxVelocity = MAX_VELOCITY;
         config.maxAcceleration = MAX_ACCELERATION;
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
-        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, -2.90077720631102, config);
-        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, 2.004908837378025, config);
-        bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, -.607455164194107, config);
-        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, 1.4542108476, config);
+        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, TorqueMath.constrain0to2PI(-2.90077720631102),
+                config, frontLeftFF, frontLeftTurnP);
+        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, TorqueMath.constrain0to2PI(2.004908837378025),
+                config, frontRightFF, frontRightTurnP);
+        bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, TorqueMath.constrain0to2PI(-.607455164194107),
+                config, backLeftFF, backLeftTurnP);
+        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, TorqueMath.constrain0to2PI(1.4542108476),
+                config, backRightFF, backRightTurnP);
 
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
 
@@ -178,8 +196,17 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
         SmartDashboard.putData("FIELD", fieldMap);
     }
 
+    public boolean isState(State state) {
+        return desiredState == state;
+    }
+
+    public boolean isAutoLevelDone() {
+        return autoLevelController.isDone();
+    }
+
     @Override
     public final void initialize(final TorqueMode mode) {
+
         mode.onAuto(() -> {
             isRotationLocked = false;
             desiredState = State.ROBOT_RELATIVE;
@@ -188,6 +215,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
         mode.onTeleop(() -> {
             isRotationLocked = true;
             desiredState = State.FIELD_RELATIVE;
+            inTeleop = true;
         });
     }
 
@@ -206,6 +234,11 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     public final void update(final TorqueMode mode) {
         updateFeedback();
 
+        backLeftTurnP = SmartDashboard.getNumber("back_left turn p", backLeftTurnP);
+        backRightTurnP = SmartDashboard.getNumber("back_right turn p", backRightTurnP);
+        frontLeftTurnP = SmartDashboard.getNumber("front_left turn p", frontLeftTurnP);
+        frontRightTurnP = SmartDashboard.getNumber("front_right turn p", frontRightTurnP);
+
         if (desiredState == State.XF) {
             xFactor();
         } else {
@@ -213,9 +246,11 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
                 inputSpeeds = inputSpeeds
                         .times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
                                 : speedSetting.speed);
-            }
-            if (desiredState == State.FIELD_RELATIVE) {
+
                 calculateTeleop();
+                convertToFieldRelative();
+            } else if (desiredState == State.BALANCE) {
+                inputSpeeds = autoLevelController.calculate();
                 convertToFieldRelative();
             }
 
@@ -234,6 +269,8 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
             }
         }
 
+        autoLevelController.resetIf(desiredState != State.BALANCE);
+
         desiredState = desiredState.parent;
         Debug.log("Speed Shift State", speedSetting.toString());
         Debug.log("Speed Shift Value",
@@ -241,7 +278,6 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     }
 
     public void resetPose(final Pose2d pose) {
-        // gyro.setOffsetCW(pose.getRotation());
         poseEstimator.resetPosition(gyro.getHeadingCCW(), getModulePositions(), pose);
     }
 
@@ -304,11 +340,17 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private void calculateTeleop() {
         final double realRotationRadians = gyro.getHeadingCCW().getRadians();
 
+        boolean rotLock = false;
+        SmartDashboard.putNumber("rad per second", inputSpeeds.omegaRadiansPerSecond);
+
         if (isRotationLocked && !inputSpeeds.hasRotationalVelocity()
                 && inputSpeeds.hasTranslationalVelocity()) {
             final double omega = teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
             inputSpeeds.omegaRadiansPerSecond = omega;
+            rotLock = true;
         } else
             lastRotationRadians = realRotationRadians;
+
+        SmartDashboard.putBoolean("rotation lock", rotLock);
     }
 }

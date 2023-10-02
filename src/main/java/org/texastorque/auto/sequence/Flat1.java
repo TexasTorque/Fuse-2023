@@ -18,10 +18,10 @@ public final class Flat1 extends TorqueSequence implements Subsystems {
     public Flat1() {
         addBlock(intake.yieldGamePiece(Intake.GamePiece.CONE));
 
-        addBlock(new Score(Arm.State.HIGH).command());
+        addBlock(new Score(Arm.State.MID).command());
 
         addBlock(new TorqueWaitTime(1));
 
-        addBlock(new FollowPath("taxi", 2.5, 3.5));
+        addBlock(new FollowPath("Taxi", 2.5, 3.5));
     }
 }
