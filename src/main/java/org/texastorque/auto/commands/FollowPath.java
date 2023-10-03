@@ -47,6 +47,8 @@ public final class FollowPath extends TorqueCommand implements Subsystems {
     private final Map<String, TorqueCommand> commands;
     private final List<TorqueCommand> running;
 
+    private static boolean firstPath;
+
     public FollowPath(final String name) {
         this(name, MAX_VELOCITY_PATH, MAX_ACCELERATION_PATH);
     }
@@ -93,7 +95,8 @@ public final class FollowPath extends TorqueCommand implements Subsystems {
 
         final Pose2d startingPose = reflect(trajectory.getInitialState()).poseMeters;
         Debug.log("startpose", startingPose.toString());
-        drivebase.resetPose(new Pose2d(startingPose.getTranslation(), Rotation2d.fromRadians(0)));
+        if (firstPath) drivebase.resetPose(new Pose2d(startingPose.getTranslation(), Rotation2d.fromRadians(0)));
+        firstPath = false;
     }
 
     @Override
