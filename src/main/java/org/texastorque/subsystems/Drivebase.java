@@ -153,9 +153,12 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private final AutoLevelController autoLevelController = new AutoLevelController();
 
     public boolean inTeleop = false;
+    private boolean isAutoAligning = false;
 
     private double backLeftFF = .207, backRightFF = .201, frontLeftFF = .208, frontRightFF = .204;
     private double backLeftTurnP = .3, backRightTurnP = .3, frontLeftTurnP = .3, frontRightTurnP = .3;
+
+    private final PIDController autoAlignPID = new PIDController(1, 0, 0);
 
     private Drivebase() {
         super(State.FIELD_RELATIVE);
@@ -202,6 +205,10 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     public boolean isAutoLevelDone() {
         return autoLevelController.isDone();
+    }
+
+    public void setAutoAlign(boolean autoAlign) {
+        this.isAutoAligning = autoAlign;
     }
 
     @Override
@@ -339,6 +346,16 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     private void calculateTeleop() {
         final double realRotationRadians = gyro.getHeadingCCW().getRadians();
+
+        if (isAutoAligning) {
+            final double x = SmartDashboard.getNumber("tape-x", -1);
+            if (x == -1) return;
+            final double CAM_MAX = 1280;
+
+            double result = autoAlignPID.calculate(x - (CAM_MAX / 2), 0);
+
+            inputSpeeds.omegaRadiansPerSecond = result;
+        }
 
         boolean rotLock = false;
         SmartDashboard.putNumber("rad per second", inputSpeeds.omegaRadiansPerSecond);

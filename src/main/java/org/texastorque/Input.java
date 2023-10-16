@@ -33,7 +33,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, gamePieceModeToggle, runIntake, runOuttake,
             shiftArmDirection, ground, highStow, doubleSub, slowlySlowDownClick,
-            slowlySlowDownHold, singleSub, lowDump;
+            slowlySlowDownHold, singleSub, lowDump, wantsAutoAlign;
 
     private final TorqueRequestableTimeout driverTimeout, operatorTimeout;
 
@@ -65,6 +65,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         runOuttake = new TorqueBoolSupplier(operator::isLeftTriggerDown);
 
         gamePieceModeToggle = new TorqueToggleSupplier(operator::isLeftBumperDown);
+
+        wantsAutoAlign = new TorqueBoolSupplier(() -> driver.isRightTriggerDown());
     }
 
     public void update() {
@@ -117,6 +119,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     private void updateDrivebase() {
         resetGyro.onTrue(() -> drivebase.resetGyro());
         xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
+        wantsAutoAlign.onTrueOrFalse(() -> drivebase.setAutoAlign(true), () -> drivebase.setAutoAlign(false));
 
         slowlySlowDownClick.onTrue(() -> {
             drivebase.speedSequence = new SpeedSequence(Drivebase.SpeedSetting.FAST,
