@@ -158,7 +158,9 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private double backLeftFF = .207, backRightFF = .201, frontLeftFF = .208, frontRightFF = .204;
     private double backLeftTurnP = .3, backRightTurnP = .3, frontLeftTurnP = .3, frontRightTurnP = .3;
 
-    private final PIDController autoAlignPID = new PIDController(1, 0, 0);
+    private final PIDController autoAlignPID = new PIDController(.01, 0, 1);
+
+    private double lastX = -1;
 
     private Drivebase() {
         super(State.FIELD_RELATIVE);
@@ -347,12 +349,22 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private void calculateTeleop() {
         final double realRotationRadians = gyro.getHeadingCCW().getRadians();
 
-        if (isAutoAligning) {
-            final double x = SmartDashboard.getNumber("tape-x", -1);
-            if (x == -1) return;
-            final double CAM_MAX = 1280;
+        SmartDashboard.putBoolean("auto-align", isAutoAligning);
 
-            double result = autoAlignPID.calculate(x - (CAM_MAX / 2), 0);
+        if (isAutoAligning) {
+            final double x = SmartDashboard.getNumber("tape-x", lastX);
+            lastX = x;
+            if (lastX == -1) return;
+
+            final double CAM_MAX = 720;
+
+            double result = autoAlignPID.calculate(lastX, 250);
+
+            if (Math.abs(result) > 1) {
+                result = Math.copySign(1, result);
+            }
+            SmartDashboard.putNumber("align-power", result);
+            SmartDashboard.putNumber("align-x", lastX);
 
             inputSpeeds.omegaRadiansPerSecond = result;
         }
