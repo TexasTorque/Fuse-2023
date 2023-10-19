@@ -24,8 +24,8 @@ public final class EventMap implements Subsystems {
             intake.setState(Intake.State.OFF);
         }));
 
-        map.put("high-stow", new TorqueRun(() -> {
-            arm.setState(Arm.State.STOW);
+        map.put("high", new TorqueRun(() -> {
+            arm.setState(Arm.State.HIGH);
             intake.setState(Intake.State.OFF);
         }));
 

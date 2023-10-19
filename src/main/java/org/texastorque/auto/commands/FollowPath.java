@@ -47,7 +47,7 @@ public final class FollowPath extends TorqueCommand implements Subsystems {
     private final Map<String, TorqueCommand> commands;
     private final List<TorqueCommand> running;
 
-    private static boolean firstPath;
+    private static boolean firstPath = true;
 
     public FollowPath(final String name) {
         this(name, MAX_VELOCITY_PATH, MAX_ACCELERATION_PATH);

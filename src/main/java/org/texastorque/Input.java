@@ -33,7 +33,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, gamePieceModeToggle, runIntake, runOuttake,
             shiftArmDirection, ground, highStow, doubleSub, slowlySlowDownClick,
-            slowlySlowDownHold, singleSub, lowDump;
+            slowlySlowDownHold, doubleSubSideways, lowDump;
 
     private final TorqueRequestableTimeout driverTimeout, operatorTimeout;
 
@@ -55,7 +55,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         ground = new TorqueClickSupplier(() -> operator.isDPADDownDown());
         highStow = new TorqueClickSupplier(operator::isXButtonDown);
         doubleSub = new TorqueClickSupplier(operator::isDPADUpDown);
-        singleSub = new TorqueClickSupplier(() -> operator.isDPADRightDown() || operator.isDPADLeftDown());
+        doubleSubSideways = new TorqueClickSupplier(() -> operator.isDPADRightDown() || operator.isDPADLeftDown());
         lowDump = new TorqueClickSupplier(operator::isLeftCenterButtonDown);
 
         shiftArmDirection = new TorqueToggleSupplier(operator::isRightBumperDown);
@@ -88,7 +88,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         ground.onTrue(() -> arm.setState(Arm.State.INTAKE));
         highStow.onTrue(() -> arm.setState(Arm.State.HIGH_STOW));
         doubleSub.onTrue(() -> arm.setState(Arm.State.DOUBLE_SUB));
-        singleSub.onTrue(() -> arm.setState(Arm.State.SINGLE_SUB));
+        doubleSubSideways.onTrue(() -> arm.setState(Arm.State.DOUBLE_SUB_FLAT));
         lowDump.onTrue(()-> arm.setState(Arm.State.LOW_DUMP));
 
         arm.setRotaryAdjustment(-operator.getRightYAxis());
