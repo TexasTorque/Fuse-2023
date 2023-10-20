@@ -73,9 +73,9 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         updateArm();
         updateIntake();
 
-        if (drivebase.inTeleop && Timer.getMatchTime() == 10) {
-            setDriverRumbleFor(2);
-            setOperatorRumbleFor(2);
+        if (drivebase.inTeleop && TorqueMath.toleranced(Timer.getMatchTime(), 10, 1)) {
+            setDriverRumbleFor(1);
+            setOperatorRumbleFor(1);
         }
 
         operator.setRumble(operatorTimeout.get());
@@ -119,7 +119,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
         wantsAutoAlign.onTrue(() -> drivebase.setState(Drivebase.State.AUTO_ALIGN));
 
-        if (!xFactor.get() && !wantsAutoAlign.get())
+        if (!xFactor.get() && !wantsAutoAlign.get() && !slowlySlowDownHold.get())
             drivebase.setState(Drivebase.State.FIELD_RELATIVE);
 
         slowlySlowDownClick.onTrue(() -> {
