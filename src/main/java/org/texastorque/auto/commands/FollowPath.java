@@ -32,7 +32,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 
 public final class FollowPath extends TorqueCommand implements Subsystems {
-    public static final double MAX_VELOCITY_PATH = 3.5, MAX_ACCELERATION_PATH = 3.5;
+    public static final double MAX_VELOCITY_PATH = 3.5, MAX_ACCELERATION_PATH = 4;
 
     private static boolean firstPath = true;
     private final PIDController xController = new PIDController(3, 0, 0);
@@ -48,6 +48,8 @@ public final class FollowPath extends TorqueCommand implements Subsystems {
     private final Map<String, TorqueCommand> commands;
 
     private final List<TorqueCommand> running;
+
+    private static boolean firstPath = true;
 
     public FollowPath(final String name) {
         this(name, MAX_VELOCITY_PATH, MAX_ACCELERATION_PATH);

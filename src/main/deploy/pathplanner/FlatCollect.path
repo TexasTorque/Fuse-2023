@@ -182,7 +182,7 @@
         "y": 4.473198729600584
       },
       "nextControl": null,
-      "holonomicAngle": 0,
+      "holonomicAngle": 0.0,
       "isReversal": false,
       "velOverride": null,
       "isLocked": false,
@@ -199,7 +199,7 @@
     {
       "position": 4.827414772727275,
       "names": [
-        "high-stow"
+        "high"
       ]
     },
     {
