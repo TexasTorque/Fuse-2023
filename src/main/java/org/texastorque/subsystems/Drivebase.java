@@ -21,7 +21,6 @@ import org.texastorque.torquelib.swerve.TorqueSwerveModule2022;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022.SwerveConfig;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
 import org.texastorque.torquelib.util.TorqueMath;
-
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
@@ -41,7 +40,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> implements Subsystems {
     public static enum State implements TorqueState {
-        FIELD_RELATIVE(null), ROBOT_RELATIVE(null), XF(FIELD_RELATIVE), BALANCE(FIELD_RELATIVE);
+        FIELD_RELATIVE(null), ROBOT_RELATIVE(null), XF(FIELD_RELATIVE), BALANCE(
+                FIELD_RELATIVE), AUTO_ALIGN(ROBOT_RELATIVE);
 
         public final State parent;
 
@@ -74,7 +74,8 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
         final double initSpeed, finalSpeed, duration, startTime, speedDeceleration;
 
         // Linearly decreases the speed every second for a duration of time
-        public SpeedSequence(final SpeedSetting initSpeed, final SpeedSetting finalSpeed, final double duration) {
+        public SpeedSequence(final SpeedSetting initSpeed, final SpeedSetting finalSpeed,
+                final double duration) {
             this.initSpeed = initSpeed.speed;
             this.finalSpeed = finalSpeed.speed;
             this.duration = duration;
@@ -83,7 +84,8 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
         }
 
         public double get() {
-            return Math.max(initSpeed - speedDeceleration * (Timer.getFPGATimestamp() - startTime), finalSpeed);
+            return Math.max(initSpeed - speedDeceleration * (Timer.getFPGATimestamp() - startTime),
+                    finalSpeed);
         }
     }
 
@@ -96,22 +98,20 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(0));
 
     /**
-     * Standard deviations of model states. Increase these numbers to trust your
-     * model's state
-     * estimates less. This matrix is in the form [x, y, theta]ᵀ, with units in
-     * meters and radians,
+     * Standard deviations of model states. Increase these numbers to trust your model's state
+     * estimates less. This matrix is in the form [x, y, theta]ᵀ, with units in meters and radians,
      * then meters.
      */
-    private static final Vector<N3> STATE_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+    private static final Vector<N3> STATE_STDS =
+            VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
     /**
-     * Standard deviations of the vision measurements. Increase these numbers to
-     * trust global
-     * measurements from vision less. This matrix is in the form [x, y, theta]ᵀ,
-     * with units in
+     * Standard deviations of the vision measurements. Increase these numbers to trust global
+     * measurements from vision less. This matrix is in the form [x, y, theta]ᵀ, with units in
      * meters and radians.
      */
-    private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
+    private static final Vector<N3> VISION_STDS =
+            VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
 
     public static SwerveModulePosition invertSwerveModuleDistance(final SwerveModulePosition pose) {
         return new SwerveModulePosition(-pose.distanceMeters, pose.angle);
@@ -156,11 +156,9 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private boolean isAutoAligning = false;
 
     private double backLeftFF = .207, backRightFF = .201, frontLeftFF = .208, frontRightFF = .204;
-    private double backLeftTurnP = .3, backRightTurnP = .3, frontLeftTurnP = .3, frontRightTurnP = .3;
 
-    private final PIDController autoAlignPID = new PIDController(.01, 0, 1);
 
-    private double lastX = -1;
+    private final PIDController autoAlignPID = new PIDController(1, 0, 1);
 
     private Drivebase() {
         super(State.FIELD_RELATIVE);
@@ -170,24 +168,19 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
         final SwerveConfig config = SwerveConfig.defaultConfig;
 
-        SmartDashboard.putNumber("back_left turn p", backLeftTurnP);
-        SmartDashboard.putNumber("back_right turn p", backRightTurnP);
-        SmartDashboard.putNumber("front_left turn p", frontLeftTurnP);
-        SmartDashboard.putNumber("front_right turn p", frontRightTurnP);
-
         config.maxVelocity = MAX_VELOCITY;
         config.maxAcceleration = MAX_ACCELERATION;
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
-        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD, TorqueMath.constrain0to2PI(-2.90077720631102),
-                config, frontLeftFF, frontLeftTurnP);
-        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD, TorqueMath.constrain0to2PI(2.004908837378025),
-                config, frontRightFF, frontRightTurnP);
-        bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD, TorqueMath.constrain0to2PI(-.607455164194107),
-                config, backLeftFF, backLeftTurnP);
-        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD, TorqueMath.constrain0to2PI(1.4542108476),
-                config, backRightFF, backRightTurnP);
+        fl = new TorqueSwerveModule2022("Front Left", Ports.FL_MOD,
+                TorqueMath.constrain0to2PI(-2.90077720631102), config, frontLeftFF);
+        fr = new TorqueSwerveModule2022("Front Right", Ports.FR_MOD,
+                TorqueMath.constrain0to2PI(2.004908837378025), config, frontRightFF);
+        bl = new TorqueSwerveModule2022("Back Left", Ports.BL_MOD,
+                TorqueMath.constrain0to2PI(-.607455164194107), config, backLeftFF);
+        br = new TorqueSwerveModule2022("Back Right", Ports.BR_MOD,
+                TorqueMath.constrain0to2PI(1.4542108476), config, backRightFF);
 
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
 
@@ -229,10 +222,10 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     }
 
     public SwerveModulePosition[] getModulePositions() {
-        return new SwerveModulePosition[] { invertSwerveModuleDistance(fl.getPosition()),
+        return new SwerveModulePosition[] {invertSwerveModuleDistance(fl.getPosition()),
                 invertSwerveModuleDistance(fr.getPosition()),
                 invertSwerveModuleDistance(bl.getPosition()),
-                invertSwerveModuleDistance(br.getPosition()) };
+                invertSwerveModuleDistance(br.getPosition())};
     }
 
     public void convertToFieldRelative() {
@@ -243,17 +236,12 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     public final void update(final TorqueMode mode) {
         updateFeedback();
 
-        backLeftTurnP = SmartDashboard.getNumber("back_left turn p", backLeftTurnP);
-        backRightTurnP = SmartDashboard.getNumber("back_right turn p", backRightTurnP);
-        frontLeftTurnP = SmartDashboard.getNumber("front_left turn p", frontLeftTurnP);
-        frontRightTurnP = SmartDashboard.getNumber("front_right turn p", frontRightTurnP);
-
         if (desiredState == State.XF) {
             xFactor();
         } else {
             if (mode.isTeleop()) {
-                inputSpeeds = inputSpeeds
-                        .times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
+                inputSpeeds =
+                        inputSpeeds.times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
                                 : speedSetting.speed);
 
                 calculateTeleop();
@@ -261,6 +249,8 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
             } else if (desiredState == State.BALANCE) {
                 inputSpeeds = autoLevelController.calculate();
                 convertToFieldRelative();
+            } else if (desiredState == State.AUTO_ALIGN) {
+                calculateAutoAlign();
             }
 
             swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
@@ -349,37 +339,27 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     private void calculateTeleop() {
         final double realRotationRadians = gyro.getHeadingCCW().getRadians();
 
-        SmartDashboard.putBoolean("auto-align", isAutoAligning);
-
-        if (isAutoAligning) {
-            final double x = SmartDashboard.getNumber("tape-x", lastX);
-            lastX = x;
-            if (lastX == -1) return;
-
-            final double CAM_MAX = 720;
-
-            double result = autoAlignPID.calculate(lastX, 250);
-
-            if (Math.abs(result) > 1) {
-                result = Math.copySign(1, result);
-            }
-            SmartDashboard.putNumber("align-power", result);
-            SmartDashboard.putNumber("align-x", lastX);
-
-            inputSpeeds.omegaRadiansPerSecond = result;
-        }
-
-        boolean rotLock = false;
-        SmartDashboard.putNumber("rad per second", inputSpeeds.omegaRadiansPerSecond);
-
         if (isRotationLocked && !inputSpeeds.hasRotationalVelocity()
                 && inputSpeeds.hasTranslationalVelocity()) {
-            final double omega = teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
+            final double omega =
+                    teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
             inputSpeeds.omegaRadiansPerSecond = omega;
-            rotLock = true;
         } else
             lastRotationRadians = realRotationRadians;
+    }
 
-        SmartDashboard.putBoolean("rotation lock", rotLock);
+    private void calculateAutoAlign() {
+        final double realRotationRadians = gyro.getHeadingCCW().getRadians();
+        final double tapeX = SmartDashboard.getNumber("tape-x", -1);
+        
+        if (tapeX == -1)
+            return;
+
+        Debug.log("tapeX", tapeX);
+
+        inputSpeeds.omegaRadiansPerSecond = teleopOmegaController.calculate(realRotationRadians, 0); // forward
+
+        inputSpeeds.vyMetersPerSecond = autoAlignPID.calculate(tapeX, 250);
+
     }
 }

@@ -119,7 +119,10 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     private void updateDrivebase() {
         resetGyro.onTrue(() -> drivebase.resetGyro());
         xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
-        wantsAutoAlign.onTrueOrFalse(() -> drivebase.setAutoAlign(true), () -> drivebase.setAutoAlign(false));
+        wantsAutoAlign.onTrue(() -> drivebase.setState(Drivebase.State.AUTO_ALIGN));
+
+        if (!xFactor.get() && !wantsAutoAlign.get())
+            drivebase.setState(Drivebase.State.FIELD_RELATIVE);
 
         slowlySlowDownClick.onTrue(() -> {
             drivebase.speedSequence = new SpeedSequence(Drivebase.SpeedSetting.FAST,
