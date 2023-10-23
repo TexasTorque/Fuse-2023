@@ -33,7 +33,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     private final TorqueBoolSupplier xFactor, resetGyro, high, mid, stow, gamePieceModeToggle, runIntake, runOuttake,
             shiftArmDirection, ground, highStow, doubleSub, slowlySlowDownClick,
-            slowlySlowDownHold, doubleSubSideways, lowDump;
+            slowlySlowDownHold, lowDump, wantsAutoAlign;
 
     private final TorqueRequestableTimeout driverTimeout, operatorTimeout;
 
@@ -54,8 +54,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         stow = new TorqueClickSupplier(operator::isAButtonDown);
         ground = new TorqueClickSupplier(() -> operator.isDPADDownDown());
         highStow = new TorqueClickSupplier(operator::isXButtonDown);
-        doubleSub = new TorqueClickSupplier(operator::isDPADUpDown);
-        doubleSubSideways = new TorqueClickSupplier(() -> operator.isDPADRightDown() || operator.isDPADLeftDown());
+        doubleSub = new TorqueClickSupplier(() -> operator.isDPADUpDown());
         lowDump = new TorqueClickSupplier(operator::isLeftCenterButtonDown);
 
         shiftArmDirection = new TorqueToggleSupplier(operator::isRightBumperDown);
@@ -65,6 +64,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         runOuttake = new TorqueBoolSupplier(operator::isLeftTriggerDown);
 
         gamePieceModeToggle = new TorqueToggleSupplier(operator::isLeftBumperDown);
+
+        wantsAutoAlign = new TorqueBoolSupplier(() -> driver.isRightTriggerDown());
     }
 
     public void update() {
@@ -72,9 +73,9 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         updateArm();
         updateIntake();
 
-        if (drivebase.inTeleop && Timer.getMatchTime() == 10) {
-            setDriverRumbleFor(2);
-            setOperatorRumbleFor(2);
+        if (drivebase.inTeleop && TorqueMath.toleranced(Timer.getMatchTime(), 10, 1)) {
+            setDriverRumbleFor(1);
+            setOperatorRumbleFor(1);
         }
 
         operator.setRumble(operatorTimeout.get());
@@ -88,7 +89,6 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         ground.onTrue(() -> arm.setState(Arm.State.INTAKE));
         highStow.onTrue(() -> arm.setState(Arm.State.HIGH_STOW));
         doubleSub.onTrue(() -> arm.setState(Arm.State.DOUBLE_SUB));
-        doubleSubSideways.onTrue(() -> arm.setState(Arm.State.DOUBLE_SUB_FLAT));
         lowDump.onTrue(()-> arm.setState(Arm.State.LOW_DUMP));
 
         arm.setRotaryAdjustment(-operator.getRightYAxis());
@@ -117,6 +117,12 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     private void updateDrivebase() {
         resetGyro.onTrue(() -> drivebase.resetGyro());
         xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
+        wantsAutoAlign.onTrue(() -> drivebase.setState(Drivebase.State.AUTO_ALIGN));
+
+        if (!xFactor.get() && !wantsAutoAlign.get() && !slowlySlowDownHold.get()) {
+            drivebase.setState(Drivebase.State.FIELD_RELATIVE);
+            System.out.print("DEFAULTING");
+        }
 
         slowlySlowDownClick.onTrue(() -> {
             drivebase.speedSequence = new SpeedSequence(Drivebase.SpeedSetting.FAST,

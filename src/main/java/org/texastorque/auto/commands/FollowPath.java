@@ -34,20 +34,20 @@ import edu.wpi.first.wpilibj.Timer;
 public final class FollowPath extends TorqueCommand implements Subsystems {
     public static final double MAX_VELOCITY_PATH = 3.5, MAX_ACCELERATION_PATH = 4;
 
+    private static boolean firstPath = true;
     private final PIDController xController = new PIDController(3, 0, 0);
+
     private final PIDController yController = new PIDController(3, 0, 0);
-
     private final PIDController omegaController;
+
     private final PPHolonomicDriveController controller;
-
     private final PathPlannerTrajectory trajectory;
-    private final Timer timer = new Timer();
 
+    private final Timer timer = new Timer();
     private final List<EventMarker> unpassed, events;
     private final Map<String, TorqueCommand> commands;
-    private final List<TorqueCommand> running;
 
-    private static boolean firstPath = true;
+    private final List<TorqueCommand> running;
 
     public FollowPath(final String name) {
         this(name, MAX_VELOCITY_PATH, MAX_ACCELERATION_PATH);
@@ -95,7 +95,13 @@ public final class FollowPath extends TorqueCommand implements Subsystems {
 
         final Pose2d startingPose = reflect(trajectory.getInitialState()).poseMeters;
         Debug.log("startpose", startingPose.toString());
-        if (firstPath) drivebase.resetPose(new Pose2d(startingPose.getTranslation(), Rotation2d.fromRadians(0)));
+        if (firstPath) {
+            System.out.println("FIRST PATH");
+            drivebase.resetPose(new Pose2d(startingPose.getTranslation(), Rotation2d.fromRadians(0)));
+        } else {
+            System.out.println("NOT FIRST PATH");
+        }
+
         firstPath = false;
     }
 
