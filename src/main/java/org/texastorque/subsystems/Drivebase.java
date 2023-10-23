@@ -21,6 +21,7 @@ import org.texastorque.torquelib.swerve.TorqueSwerveModule2022;
 import org.texastorque.torquelib.swerve.TorqueSwerveModule2022.SwerveConfig;
 import org.texastorque.torquelib.swerve.TorqueSwerveSpeeds;
 import org.texastorque.torquelib.util.TorqueMath;
+
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
@@ -33,6 +34,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -41,7 +43,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> implements Subsystems {
     public static enum State implements TorqueState {
         FIELD_RELATIVE(null), ROBOT_RELATIVE(null), XF(FIELD_RELATIVE), BALANCE(
-                FIELD_RELATIVE), AUTO_ALIGN(ROBOT_RELATIVE);
+                FIELD_RELATIVE),
+        AUTO_ALIGN(ROBOT_RELATIVE);
 
         public final State parent;
 
@@ -98,20 +101,22 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     public static final Pose2d INITIAL_POS = new Pose2d(0, 0, Rotation2d.fromRadians(0));
 
     /**
-     * Standard deviations of model states. Increase these numbers to trust your model's state
-     * estimates less. This matrix is in the form [x, y, theta]ᵀ, with units in meters and radians,
+     * Standard deviations of model states. Increase these numbers to trust your
+     * model's state
+     * estimates less. This matrix is in the form [x, y, theta]ᵀ, with units in
+     * meters and radians,
      * then meters.
      */
-    private static final Vector<N3> STATE_STDS =
-            VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
+    private static final Vector<N3> STATE_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
 
     /**
-     * Standard deviations of the vision measurements. Increase these numbers to trust global
-     * measurements from vision less. This matrix is in the form [x, y, theta]ᵀ, with units in
+     * Standard deviations of the vision measurements. Increase these numbers to
+     * trust global
+     * measurements from vision less. This matrix is in the form [x, y, theta]ᵀ,
+     * with units in
      * meters and radians.
      */
-    private static final Vector<N3> VISION_STDS =
-            VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
+    private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.1, 0.1, Units.degreesToRadians(10));
 
     public static SwerveModulePosition invertSwerveModuleDistance(final SwerveModulePosition pose) {
         return new SwerveModulePosition(-pose.distanceMeters, pose.angle);
@@ -156,7 +161,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     private double backLeftFF = .207, backRightFF = .201, frontLeftFF = .208, frontRightFF = .204;
 
-    private final PIDController autoAlignPID = new PIDController(1, 0, 1);
+    private final PIDController autoAlignPID = new PIDController(.2, 0, 1);
 
     private Drivebase() {
         super(State.FIELD_RELATIVE);
@@ -216,10 +221,10 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     }
 
     public SwerveModulePosition[] getModulePositions() {
-        return new SwerveModulePosition[] {invertSwerveModuleDistance(fl.getPosition()),
+        return new SwerveModulePosition[] { invertSwerveModuleDistance(fl.getPosition()),
                 invertSwerveModuleDistance(fr.getPosition()),
                 invertSwerveModuleDistance(bl.getPosition()),
-                invertSwerveModuleDistance(br.getPosition())};
+                invertSwerveModuleDistance(br.getPosition()) };
     }
 
     public void convertToFieldRelative() {
@@ -234,16 +239,17 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
             xFactor();
         } else {
             if (mode.isTeleop()) {
-                inputSpeeds =
-                        inputSpeeds.times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
-                                : speedSetting.speed);
+                inputSpeeds = inputSpeeds.times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
+                        : speedSetting.speed);
 
                 calculateTeleop();
                 convertToFieldRelative();
             } else if (desiredState == State.BALANCE) {
                 inputSpeeds = autoLevelController.calculate();
                 convertToFieldRelative();
-            } else if (desiredState == State.AUTO_ALIGN) {
+            }
+
+            if (desiredState == State.AUTO_ALIGN) {
                 calculateAutoAlign();
             }
 
@@ -264,10 +270,14 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
         autoLevelController.resetIf(desiredState != State.BALANCE);
 
-        desiredState = desiredState.parent;
         Debug.log("Speed Shift State", speedSetting.toString());
         Debug.log("Speed Shift Value",
                 speedSetting == SpeedSetting.SEQ ? speedSequence.get() : speedSetting.speed);
+
+        Debug.log("Auto Align Mode", desiredState == State.AUTO_ALIGN);
+
+        Debug.log("state", desiredState.toString());
+        desiredState = desiredState.parent;
     }
 
     public void resetPose(final Pose2d pose) {
@@ -335,8 +345,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
         if (isRotationLocked && !inputSpeeds.hasRotationalVelocity()
                 && inputSpeeds.hasTranslationalVelocity()) {
-            final double omega =
-                    teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
+            final double omega = teleopOmegaController.calculate(realRotationRadians, lastRotationRadians);
             inputSpeeds.omegaRadiansPerSecond = omega;
         } else
             lastRotationRadians = realRotationRadians;
@@ -344,15 +353,17 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     private void calculateAutoAlign() {
         final double realRotationRadians = gyro.getHeadingCCW().getRadians();
+        // final double tapeX = NetworkTableInstance.getDefault().getTable("AutoAlign")
+        //         .getEntry("tape-x").getDouble(-1);
         final double tapeX = SmartDashboard.getNumber("tape-x", -1);
+
+        Debug.log("tapeX", tapeX);
 
         if (tapeX == -1)
             return;
 
-        Debug.log("tapeX", tapeX);
-
         inputSpeeds.omegaRadiansPerSecond = teleopOmegaController.calculate(realRotationRadians, 0); // forward
 
-        inputSpeeds.vyMetersPerSecond = autoAlignPID.calculate(tapeX, 250);
+        inputSpeeds.vyMetersPerSecond = -autoAlignPID.calculate(tapeX, 250);
     }
 }

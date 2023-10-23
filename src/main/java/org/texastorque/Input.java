@@ -119,8 +119,10 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         xFactor.onTrue(() -> drivebase.setState(Drivebase.State.XF));
         wantsAutoAlign.onTrue(() -> drivebase.setState(Drivebase.State.AUTO_ALIGN));
 
-        if (!xFactor.get() && !wantsAutoAlign.get() && !slowlySlowDownHold.get())
+        if (!xFactor.get() && !wantsAutoAlign.get() && !slowlySlowDownHold.get()) {
             drivebase.setState(Drivebase.State.FIELD_RELATIVE);
+            System.out.print("DEFAULTING");
+        }
 
         slowlySlowDownClick.onTrue(() -> {
             drivebase.speedSequence = new SpeedSequence(Drivebase.SpeedSetting.FAST,
