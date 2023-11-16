@@ -90,7 +90,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     private static volatile Drivebase instance;
 
-    public static final double WIDTH = Units.inchesToMeters(18), LENGTH = Units.inchesToMeters(21),
+    public static final double WIDTH = Units.inchesToMeters(21.25), LENGTH = Units.inchesToMeters(21.25),
             MAX_VELOCITY = 4.522, MAX_ACCELERATION = 8.958, MAX_ANGULAR_VELOCITY = 2 * Math.PI,
             MAX_ANGULAR_ACCELERATION = 2 * Math.PI, WHEEL_DIAMETER = Units.inchesToMeters(4.0);
 
@@ -151,9 +151,11 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
 
     private final AutoLevelController autoLevelController = new AutoLevelController();
 
-    public boolean inTeleop = false;
+    public boolean inTeleop = false, rotationLock = true;
 
     private double backLeftFF = .207, backRightFF = .201, frontLeftFF = .208, frontRightFF = .204;
+
+    private double gyroCoeff = .02;
 
     private Drivebase() {
         super(State.FIELD_RELATIVE);
@@ -187,6 +189,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
             swerveStates[i] = new SwerveModuleState();
 
         SmartDashboard.putData("FIELD", fieldMap);
+        SmartDashboard.putNumber("gyroCoeff", gyroCoeff);
     }
 
     public boolean isState(State state) {
@@ -219,12 +222,15 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
     }
 
     public void convertToFieldRelative() {
-        inputSpeeds = inputSpeeds.toFieldRelativeSpeeds(gyro.getHeadingCCW());
+        inputSpeeds = inputSpeeds.toFieldRelativeSpeeds(gyro.getHeadingCCW().plus(gyro.getAngularVelocity().times(rotationLock ? gyroCoeff : 1)));
     }
 
     @Override
     public final void update(final TorqueMode mode) {
         updateFeedback();
+
+        gyroCoeff = SmartDashboard.getNumber("gyroCoeff", -1);
+        SmartDashboard.putBoolean("rotationLock", rotationLock);
 
         if (desiredState == State.XF) {
             xFactor();
@@ -234,7 +240,7 @@ public final class Drivebase extends TorqueStatorSubsystem<Drivebase.State> impl
                         inputSpeeds.times(speedSetting == SpeedSetting.SEQ ? speedSequence.get()
                                 : speedSetting.speed);
 
-                calculateTeleop();
+                // calculateTeleop();
                 convertToFieldRelative();
             } else if (desiredState == State.BALANCE) {
                 inputSpeeds = autoLevelController.calculate();
